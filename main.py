@@ -23,8 +23,23 @@ def normal_distribution(x: int, sigma: float, mu: float) -> float:
     return _1*np.exp(_2)
 
 
-def flip(x_old):
-    pass
+def flip(x_old: int):
+    print('Number: ' + str(x_old))
+    binary_string = format(x_old, 'b')
+    print('binary string: ' + binary_string)
+    print('Len of bs:' + str(len(binary_string)))
+    flip_index = random.randint(0, len(binary_string)-1)
+    print('index: ' + str(flip_index))
+    print('index value: ' + binary_string[flip_index])
+
+
+    if binary_string[flip_index] == '1':
+        flipped = binary_string[:flip_index] + '0' + binary_string[flip_index + 1:]
+    else:
+        flipped = binary_string[:flip_index] + '1' + binary_string[flip_index + 1:]
+    print('Flipped: ' + flipped)
+
+    return int(flipped, base=2)
 
 
 def find_x_new(x_old):
@@ -48,22 +63,31 @@ def metropolis(P, n_steps, length):
 def average(N):
     X_hat = 0
     for i in range(N):
-        X_hat = X_hat + metropolis
+        X_hat = X_hat + metropolis()
     return X_hat/N
-# Press the green button in the gutter to run the script.
+
 
 
 if __name__ == '__main__':
-    n = 200
 
-    dist_list = np.array([], [])
+    # n = 200
+    #
+    # dist_list = np.zeros((n, 2))
+    #
+    # for i in range(n):
+    #     point = random_bit_string(5)
+    #
+    #     dist_list[i, 0] = point
+    #     dist_list[i, 1] = normal_distribution(point, 3, 15)
+    #
+    #     plt.plot(point, normal_distribution(point, 3, 15), 'rx')
+    #
+    # plt.show()
+    # dist_list.sort()
+    # plt.plot(dist_list[:, 1], dist_list[:, 0])
+    #
+    # plt.show()
 
-    for i in range(n):
-        point = random_bit_string(5)
-        dist_list[1, i] = normal_distribution(point, 3, 15)
-        dist_list[0, i] = point
-        plt.plot(point, normal_distribution(point, 3, 15), 'rx')
+    n= 16
 
-    plt.show()
-
-    plt.plot(dist_list[0], dist_list[1])
+    print(flip(n))
