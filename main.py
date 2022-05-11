@@ -5,7 +5,7 @@ import numpy as np
 from bit_string import BitString
 import matplotlib.pyplot as plt
 
-def normal_distribution(x: BitString, sigma: float, mu: float) -> float:
+def normal_distribution(x: int, sigma: float, mu: float) -> float:
     """
 
     :param x:
@@ -13,11 +13,11 @@ def normal_distribution(x: BitString, sigma: float, mu: float) -> float:
     :param mu:
     """
     _1 = 1/(sigma*np.sqrt(2*np.pi))
-    _2 = -(1/2)*((x.get_number()-mu)/sigma)**2
+    _2 = -(1/2)*((x-mu)/sigma)**2
     _3 = _1*np.exp(_2)
 
     _4 = 1 / (sigma/2 * np.sqrt(2 * np.pi))
-    _5 = -(1 / 2) * ((x.get_number() - mu*2) / sigma/2) ** 2
+    _5 = -(1 / 2) * ((x - mu*2) / sigma/2) ** 2
     _6 = _4 * np.exp(_5)
     return _3+_6
 
@@ -36,8 +36,8 @@ class MCMC:
         sigma = self.bit_length
         mu = (2**self.bit_length)/5
 
-        new_score = self.distribution(x_new, sigma, mu)
-        old_score = self.distribution(self.bit_string, sigma, mu)
+        new_score = self.distribution(x_new.get_number(), sigma, mu)
+        old_score = self.distribution(self.bit_string.get_number(), sigma, mu)
 
         print('u: ' + str(u))
         print('old_score: ' + str(old_score))
@@ -74,15 +74,20 @@ class MCMC:
         for i in range(self.n):
             run = self.metropolis()
             x_hat = x_hat + run.number
-            plt.plot(run.get_number(), normal_distribution(run, sigma, mu), 'r.')
+            # plt.bar(run.get_number(), normal_distribution(run, sigma, mu))
+
+            plt.plot(i, normal_distribution(i, sigma, mu), 'r.')
+            plt.plot(run.get_number(), normal_distribution(run.get_number(), sigma, mu), 'k.')
+
         plt.show()
         return x_hat/self.n
 
 
 if __name__ == '__main__':
 
-    N = 60
-    length = 10
+    N = 50
+    length = 8
 
     mcmc = MCMC(N, length)
+
     print('average: ' + str(mcmc.average()))
