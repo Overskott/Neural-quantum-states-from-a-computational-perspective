@@ -1,9 +1,8 @@
 # This is a sample Python script.
 import random
 import numpy as np
+from bit_string import BitString
 import matplotlib.pyplot as plt
-
-n_steps=1
 
 def normal_distribution(x: int, sigma: float, mu: float) -> float:
     """
@@ -17,55 +16,46 @@ def normal_distribution(x: int, sigma: float, mu: float) -> float:
     return _1*np.exp(_2)
 
 
+class MCMC:
 
+    def __init__(self, n, bit_length):
+        self.n = n
+        self.bit_string = BitString(bit_length)
+        self.distribution = normal_distribution
 
+    def find_x_new(self):
+        self.bit_string.flip()
 
-def find_x_new(x_old):
-    return flip(x_old)
+    def acceptance_criterion(self, x_new) -> bool:
+        u = random.uniform(0, 1)
 
-def acceptance_criterion(x_new, x_old, P) -> bool:
-    u = random.uniform(0, 1)
+        mu = self.bit_string.get_length()/2
 
-    return (P(x_new)/P(x_old)) > u
+        return self.distribution(x_new, 1, mu) / self.distribution(self.bit_string, 1, mu) > u
 
-def metropolis(P, n_steps, length):
+    def metropolis(self):
+        # TODO sjekke forskjell mellom reset av bit_string og ikke, mellom hver kjøring
+        x_new = self.bit_string
 
-    x_old = random_bit_string(length) # TODO sjekke forskjell mellom reset av x_old og ikke, mellom hver kjøring
+        for i in range(self.n):
+            self.find_x_new()
 
-    for i in range(n_steps):
-        x_new = find_x_new(x_old)
-        if acceptance_criterion(x_new, x_old, P):
-           x_old = x_new
-    return x_old
+            if self.acceptance_criterion(x_new):
+                self.bit_string = x_new
 
-def average(N):
-    X_hat = 0
-    for i in range(N):
-        X_hat = X_hat + metropolis()
-    return X_hat/N
+        return x_new
 
+    def average(self):
+        x_hat = 0
+        for i in range(self.n):
+            x_hat = x_hat + self.metropolis()
+        return x_hat/self.n
 
 
 if __name__ == '__main__':
 
-    # n = 200
-    #
-    # dist_list = np.zeros((n, 2))
-    #
-    # for i in range(n):
-    #     point = random_bit_string(5)
-    #
-    #     dist_list[i, 0] = point
-    #     dist_list[i, 1] = normal_distribution(point, 3, 15)
-    #
-    #     plt.plot(point, normal_distribution(point, 3, 15), 'rx')
-    #
-    # plt.show()
-    # dist_list.sort()
-    # plt.plot(dist_list[:, 1], dist_list[:, 0])
-    #
-    # plt.show()
+    N = 100
+    length = 7
 
-    n= 16
-
-    print(flip(n))
+    mcmc = MCMC(N, length)
+    mcmc.metropolis()
