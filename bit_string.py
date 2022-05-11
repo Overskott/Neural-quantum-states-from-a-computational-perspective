@@ -5,6 +5,7 @@ class BitString(int):
 
     def __init__(self, length: int):
         self.length = length
+        self.number = self.generate_perm()
 
     def get_length(self):
         return self.length
@@ -34,3 +35,5 @@ class BitString(int):
 
         return int(flipped, base=2)
 
+    def get_bit_string(self):
+        return format(self.number, 'b')
