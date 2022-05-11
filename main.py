@@ -5,12 +5,6 @@ import matplotlib.pyplot as plt
 
 n_steps=1
 
-def random_bit_string(length: int)-> int:
-    """Takes a length as input, and returns a randomly generated number with binary number length = length"""
-
-    return random.randint(0, 2**length)
-
-
 def normal_distribution(x: int, sigma: float, mu: float) -> float:
     """
 
@@ -23,23 +17,7 @@ def normal_distribution(x: int, sigma: float, mu: float) -> float:
     return _1*np.exp(_2)
 
 
-def flip(x_old: int):
-    print('Number: ' + str(x_old))
-    binary_string = format(x_old, 'b')
-    print('binary string: ' + binary_string)
-    print('Len of bs:' + str(len(binary_string)))
-    flip_index = random.randint(0, len(binary_string)-1)
-    print('index: ' + str(flip_index))
-    print('index value: ' + binary_string[flip_index])
 
-
-    if binary_string[flip_index] == '1':
-        flipped = binary_string[:flip_index] + '0' + binary_string[flip_index + 1:]
-    else:
-        flipped = binary_string[:flip_index] + '1' + binary_string[flip_index + 1:]
-    print('Flipped: ' + flipped)
-
-    return int(flipped, base=2)
 
 
 def find_x_new(x_old):
