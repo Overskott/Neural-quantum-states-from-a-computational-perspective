@@ -1,13 +1,16 @@
 import matplotlib.pyplot as plt
+import numpy as np
+
 from mcmc import *
 
 if __name__ == '__main__':
 
-    walkers = 50
+    walkers = 100
     walker_steps = 10
-    bitstring_length = 12
-    sigma = bitstring_length*30
+    bitstring_length = 5
+    sigma = 1.7**bitstring_length
     mu = 2**bitstring_length/2
+    np.linspace(-(2**bitstring_length/2), 2**bitstring_length/2)
 
     normal_dist = lambda x: normal_distribution(x, sigma, mu)
 
@@ -22,8 +25,9 @@ if __name__ == '__main__':
 
         run = met.metropolis()
         x_hat = x_hat + run.get_value()
-        plt.plot(run.get_value(), normal_dist(run.get_value()), 'r.')
-
+        plt.plot(run.get_value(), normal_dist(run.get_value()), 'ro')
+        plt.plot(run.get_value(), 0, 'b.')
+        np.trapz()
     gaus_list = []
 
     for i in range(2**bitstring_length):
