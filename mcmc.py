@@ -33,6 +33,7 @@ class State(object):
 
     def set_value(self, value):
         self._value = value
+        self._bitstring = BitArray(Bits(uint=self._value, length=self._length))
 
     def generate_perm(self) -> int:
         """Takes a _length as input, and returns a randomly generated _number with binary _number _length = _length"""
@@ -42,45 +43,44 @@ class State(object):
     def flip(self):
         flip_index = random.randint(0, self._length - 1)
         self._bitstring.invert(flip_index)
+        self._value = self._bitstring.uint
 
 
 class Metropolis(object):
 
-    def __init__(self, walkers, x: State):
-        self.walkers = walkers
+    def __init__(self, walker_steps, x: State, distribution):
+        self.walker_steps = walker_steps
+        self._state_length = x.get_length()
         self.x_new = copy.deepcopy(x)
-        self.x_old = copy.deepcopy(x)
-        self._state_length = self.x_new.get_length()
+        self.x_old = State(x.get_length())
+        self.distribution = distribution
 
     def metropolis(self):
         # TODO sjekke forskjell mellom reset av bit_string og ikke, mellom hver kjøring
-
-        for i in range(self._state_length):
+        accepted = 0
+        for i in range(self.walker_steps):
             self.x_new.flip()
-
-            if self.acceptance_criterion(self.x_new):
+            if self.acceptance_criterion(self.distribution):
                 self.x_old.set_value(self.x_new.get_value())
+                accepted += 1
             else:
                 self.x_new.set_value(self.x_old.get_value())
 
+        print('Accept rate: ' + str(accepted/self.walker_steps))
         return self.x_new
 
-    def acceptance_criterion(self, function, sigma, mu) -> bool:
+    def acceptance_criterion(self, function) -> bool:
         u = random.uniform(0, 1)
 
-        new_score = function(self.x_new.get_value(), sigma, mu)
-        old_score = function(self.x_old.get_value(), sigma, mu)
-
-        print('u: ' + str(u))
-        print('old_score: ' + str(old_score))
-        print('New_score: ' + str(new_score))
+        new_score = self.runOp(function, self.x_new.get_value())
+        old_score = self.runOp(function, self.x_old.get_value())
 
         score = new_score / old_score > u
 
-        print(score)
-        print('\n\n')
-
         return score
+
+    def runOp(self, op, val):
+        return op(val)
 
 
 class MCMC(object):
@@ -103,10 +103,6 @@ class MCMC(object):
 
         # plt.show()
         return x_hat/self.n
-
-
-# generic function takes op and its argument
-
 
 
 def normal_distribution(x: int, sigma: float, mu: float) -> float:

@@ -1,34 +1,36 @@
-
+import matplotlib.pyplot as plt
 from mcmc import *
 
 if __name__ == '__main__':
 
-    def runOp(op, val):
-        return op(val)
+    walkers = 50
+    walker_steps = 10
+    bitstring_length = 12
+    sigma = bitstring_length*30
+    mu = 2**bitstring_length/2
 
-    # declare full function
-    def add(x, y):
-        return x+y
-
-
-    def normal_distribution(x: int, sigma: float, mu: float) -> float:
-        """
-
-        :param x:
-        :param sigma:
-        :param mu:
-        """
-        _1 = 1 / (sigma * np.sqrt(2 * np.pi))
-        _2 = -(1 / 2) * ((x - mu) / sigma) ** 2
-
-        return _1 * np.exp(_2)
+    normal_dist = lambda x: normal_distribution(x, sigma, mu)
 
 
-    # run example
-    def main():
-        f = lambda y: add(3, y)
-        result = runOp(f, 1) # is 4
+    x_hat = 0
+    x_list = []
+    y_list = []
 
-    f = lambda y: add(3, y)
-    result = runOp(f, 1)  # is 4
-    print(result)
+    for i in range(walkers):
+        state = State(bitstring_length)
+        met = Metropolis(walker_steps, state, normal_dist)
+
+        run = met.metropolis()
+        x_hat = x_hat + run.get_value()
+        plt.plot(run.get_value(), normal_dist(run.get_value()), 'r.')
+
+    gaus_list = []
+
+    for i in range(2**bitstring_length):
+        gaus_list.append(normal_dist(i))
+
+
+
+    print('Average: ' + str(x_hat / walkers))
+    plt.plot(gaus_list)
+    plt.show()
