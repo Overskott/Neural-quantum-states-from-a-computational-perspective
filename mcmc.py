@@ -65,9 +65,8 @@ class Metropolis(object):
                 accepted += 1
             else:
                 self.x_new.set_value(self.x_old.get_value())
-
-        print('Accept rate: ' + str(accepted/self.walker_steps))
-        return self.x_new
+        accept_rate = accepted/self.walker_steps
+        return self.x_new, accept_rate
 
     def acceptance_criterion(self, function) -> bool:
         u = random.uniform(0, 1)

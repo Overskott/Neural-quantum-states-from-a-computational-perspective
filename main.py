@@ -7,8 +7,8 @@ if __name__ == '__main__':
 
     walkers = 100
     walker_steps = 10
-    bitstring_length = 5
-    sigma = 1.7**bitstring_length
+    bitstring_length = 12
+    sigma = 1.5**bitstring_length
     mu = 2**bitstring_length/2
     np.linspace(-(2**bitstring_length/2), 2**bitstring_length/2)
 
@@ -18,23 +18,28 @@ if __name__ == '__main__':
     x_hat = 0
     x_list = []
     y_list = []
+    accept_average = 0
 
     for i in range(walkers):
         state = State(bitstring_length)
         met = Metropolis(walker_steps, state, normal_dist)
 
-        run = met.metropolis()
+        run, accept_rate = met.metropolis()
         x_hat = x_hat + run.get_value()
-        plt.plot(run.get_value(), normal_dist(run.get_value()), 'ro')
+        accept_average += accept_rate
+
+        plt.plot(run.get_value(), normal_dist(run.get_value()), 'r.')
         plt.plot(run.get_value(), 0, 'b.')
-        np.trapz()
-    gaus_list = []
+
+    gauss_list = []
 
     for i in range(2**bitstring_length):
-        gaus_list.append(normal_dist(i))
+        gauss_list.append(normal_dist(i))
 
+    print('Accept rate: ' + str(accept_average/walkers))
+    print('E: ' + str(x_hat / walkers))
 
+    plt.plot(gauss_list)
 
-    print('Average: ' + str(x_hat / walkers))
-    plt.plot(gaus_list)
+    plt.legend(["MCMC", "spread"], loc="upper right")
     plt.show()
