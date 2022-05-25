@@ -40,10 +40,12 @@ class State(object):
         permutation = random.randint(0, (2 ** self._length)-1)
         return permutation
 
-    def flip(self):
-        flip_index = random.randint(0, self._length - 1)
-        self._bitstring.invert(flip_index)
-        self._value = self._bitstring.uint
+    def flip(self, flips: int = 1) -> None:
+
+        for i in range(flips):
+            flip_index = random.randint(0, self._length - 1)
+            self._bitstring.invert(flip_index)
+            self._value = self._bitstring.uint
 
 
 class Metropolis(object):
@@ -117,5 +119,6 @@ def normal_distribution(x: int, sigma: float, mu: float) -> float:
         return _1 * np.exp(_2)
 
 
+def double_normal_distribution(x: int, distance: int, sigma_1: float, mu_1: float, sigma_2: float, mu_2: float):
 
-
+    return (normal_distribution(x, sigma_1, mu_1) + normal_distribution(x+distance, sigma_2, mu_2))/2

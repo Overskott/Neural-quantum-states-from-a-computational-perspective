@@ -5,41 +5,34 @@ from mcmc import *
 
 if __name__ == '__main__':
 
-    walkers = 100
-    walker_steps = 10
+    walkers = 5000
+    walker_steps = 50
     bitstring_length = 12
-    sigma = 1.5**bitstring_length
+    sigma = 1.4**bitstring_length
     mu = 2**bitstring_length/2
     np.linspace(-(2**bitstring_length/2), 2**bitstring_length/2)
 
     normal_dist = lambda x: normal_distribution(x, sigma, mu)
-
+    double_normal_dist = lambda x: double_normal_distribution(x, 400, sigma, mu/2, sigma*2, mu*2)
 
     x_hat = 0
-    x_list = []
-    y_list = []
+    walker_list = []
     accept_average = 0
 
     for i in range(walkers):
         state = State(bitstring_length)
-        met = Metropolis(walker_steps, state, normal_dist)
+        met = Metropolis(walker_steps, state, double_normal_dist)
 
         run, accept_rate = met.metropolis()
         x_hat = x_hat + run.get_value()
         accept_average += accept_rate
+        walker_list.append(run.get_value())
 
-        plt.plot(run.get_value(), normal_dist(run.get_value()), 'r.')
-        plt.plot(run.get_value(), 0, 'b.')
-
-    gauss_list = []
-
-    for i in range(2**bitstring_length):
-        gauss_list.append(normal_dist(i))
-
-    print('Accept rate: ' + str(accept_average/walkers))
+    plt.hist(walker_list, bins=[i for i in range(0, 2 ** bitstring_length, 64)], density=True)
+    #plt.plot([normal_dist(i) for i in range(2**bitstring_length)])
+    plt.plot([double_normal_dist(i) for i in range(2**bitstring_length)])
+    print('Accept rate: ' + str(accept_average / walkers))
     print('E: ' + str(x_hat / walkers))
 
-    plt.plot(gauss_list)
-
-    plt.legend(["MCMC", "spread"], loc="upper right")
+    plt.legend(["Target", "MCMC"], loc="upper right")
     plt.show()
