@@ -28,7 +28,7 @@ if __name__ == '__main__':
         accept_average += accept_rate
         walker_list.append(run.get_value())
 
-    plt.hist(walker_list, bins=[i for i in range(0, 2 ** bitstring_length, 64)], density=True)
+    plt.hist(walker_list, bins=[i for i in range(0, 2 ** bitstring_length, 32)], density=True)
     #plt.plot([normal_dist(i) for i in range(2**bitstring_length)])
     plt.plot([double_normal_dist(i) for i in range(2**bitstring_length)])
     print('Accept rate: ' + str(accept_average / walkers))
