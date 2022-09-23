@@ -1,7 +1,7 @@
 import numpy as np
-import random
+from state import State
 
 
-sigma = np.asarray([random.randint(0, 1) for _ in range(10)]).reshape(-1, 1)
+state = State(10, 27)
 
-print(sigma)
+print(state.bit_array_to_value())
