@@ -2,40 +2,34 @@ import random
 import numpy as np
 
 class RBM(object):
-n = 10  # Number of nodes in the visible layer
-s = np.asarray([random.randint(0, 1) for _ in range(n)])  # Visible layer state
-h = np.asarray([random.randint(0, 1) for _ in range(n)])  # Hidden layer state
-b = np.random.rand(n)  # Visible layer bias
-c = np.random.rand(n)  # Hidden layer bias
-W = np.random.rand(n, n)  # s - h weights
-z = n  # normalization TODO Ask about this!
+
+    def __init__(self, state):
+        self.s = state
+        self.n = len(self.s)
+        self.h = np.asarray([random.randint(0, 1) for _ in range(self.n)])  # Hidden layer state
+        self.b = np.random.rand(self.n)  # Visible layer bias
+        self.c = np.random.rand(self.n)  # Hidden layer bias
+        self.W = np.random.rand(self.n, self.n)  # s - h weights
+        self.z = self.n  # normalization TODO Ask about this!
 
 
-def energy():
-    '''Calculates the RBM energy'''
-    e = 0
-    e += np.transpose(h) @ W @ s
-    e += np.transpose(c) @ h
-    e += np.transpose(b) @ s
-    return e
+    def energy(self, state):
+        '''Calculates the RBM energy'''
+
+        e = 0
+        e += np.transpose(self.h) @ self.W @ state
+        e += np.transpose(self.c) @ self.h
+        e += np.transpose(self.b) @ state
+        return e
 
 
-def probability():
-    '''Calculates the probability of finding the RBM in state s'''  #TODO is it the probability of findig s?
-    product = 1
+    def probability(self, state):
+        ''' Calculates the probability of finding the RBM in state s '''  #  TODO is it the probability of findig system is state s?
+        product = 1
+        for i in range(self.n):
+            scalar = (self.W[i, :] @ np.transpose(state))
+            product *= (1 + np.exp(-scalar - self.c[i]))
 
-    for i in range(n):
-        scalar = (W[i, :] @ np.transpose(s))
-        product *= (1 + np.exp(-scalar - c[i]))
+        bias = np.exp(np.transpose(self.b) @ state)
 
-    bias = np.exp(np.transpose(b) @ s)
-
-    return 1/z * product * bias
-
-
-for _ in range(10):
-    s = np.asarray([random.randint(0, 1) for _ in range(n)])  # Visible layer state
-
-    print(f"State: {s}")
-    print(f"P = {probability()}")
-    print(f"E = {energy()}")
+        return 1/self.z * product * bias

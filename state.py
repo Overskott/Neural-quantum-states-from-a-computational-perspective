@@ -17,8 +17,8 @@ class State(object):
     def __len__(self):
         return self._length
 
-    def __str__(self):
-        return self.get_bit_array()
+    def __str__(self) -> str:
+        return str(self.get_bit_array())
 
     def value_to_bit_array(self):
         bit_array = np.zeros(self._length)

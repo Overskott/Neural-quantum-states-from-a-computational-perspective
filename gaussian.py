@@ -1,7 +1,25 @@
 import matplotlib.pyplot as plt
-import numpy as np
-from state import State
 from mcmc import *
+
+
+
+def normal_distribution(x: int, sigma: float, mu: float) -> float:
+        """
+
+        :param x:
+        :param sigma:
+        :param mu:
+        """
+        _1 = 1 / (sigma * np.sqrt(2 * np.pi))
+        _2 = -(1 / 2) * ((x - mu) / sigma) ** 2
+
+        return _1 * np.exp(_2)
+
+
+def double_normal_distribution(x: int, distance: int, sigma_1: float, mu_1: float, sigma_2: float, mu_2: float):
+
+    return (normal_distribution(x, sigma_1, mu_1) + normal_distribution(x+distance, sigma_2, mu_2))/2
+
 
 if __name__ == '__main__':
 
