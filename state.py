@@ -44,7 +44,7 @@ class State(object):
         return self._value
 
     def set_value(self, value):
-        self._value = value
+        self._value = int(value)
         self._bit_array = self.value_to_bit_array()
 
     def generate_perm(self) -> int:
@@ -56,8 +56,15 @@ class State(object):
         # TODO fix this for np array
         for i in range(flips):
             flip_index = random.randint(0, self._length - 1)
-            self._bit_array.invert(flip_index)
-            self._value = self._bit_array.uint
+            self.flip_bit(flip_index)
+            self._value = self.bit_array_to_value()
+
+    def flip_bit(self, index):
+        bit = self._bit_array[index]
+        if bit == 1:
+            self._bit_array[index] = 0
+        else:
+            self._bit_array[index] = 1
 
     def bit_array_to_value(self):
         value = 0
