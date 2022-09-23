@@ -1,12 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
+from state import State
 from mcmc import *
 
 if __name__ == '__main__':
 
-    walkers = 5000
-    walker_steps = 50
+    walkers = 1000
+    walker_steps = 100
     bitstring_length = 12
     sigma = 1.4**bitstring_length
     mu = 2**bitstring_length/2
@@ -36,3 +36,5 @@ if __name__ == '__main__':
 
     plt.legend(["Target", "MCMC"], loc="upper right")
     plt.show()
+
+
