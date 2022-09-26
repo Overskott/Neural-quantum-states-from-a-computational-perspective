@@ -43,9 +43,10 @@ class State(object):
             index += 1
             np.flip(bit_array)
 
-        return np.flip(bit_array)  # Flipping to return in 'least significant bit' format
+        return np.flip(bit_array)  # Flipping (reversing) to return in 'least significant bit' format
 
     def bit_array_to_value(self):
+        """Updated the self.value value based on the bit_array value"""
         value = 0
         index = self._length - 1
         for bit in self._bit_array:
@@ -60,13 +61,14 @@ class State(object):
         return permutation
 
     def flip(self, flips: int = 1) -> None:
-        # TODO fix this for np array
+        """"""
         for i in range(flips):
             flip_index = random.randint(0, self._length - 1)
             self.flip_bit(flip_index)
             self._value = self.bit_array_to_value()
 
     def flip_bit(self, index):
+        """Flips (0->1 or 1->0) the bit on given index of the state"""
         bit = self._bit_array[index]
         if bit == 1:
             self._bit_array[index] = 0

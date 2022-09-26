@@ -1,6 +1,5 @@
 import copy
 import random
-import numpy as np
 from state import State
 
 
@@ -26,15 +25,12 @@ class Metropolis(object):
         accept_rate = accepted/self.walker_steps
         return self.x_new, accept_rate
 
-    def acceptance_criterion(self, function, sigma=1.5) -> bool:
+    def acceptance_criterion(self, function, sigma=1) -> bool:
         u = random.uniform(0, sigma)
 
-        new_score = self.runOp(function, self.x_new.get_bit_array())
-        old_score = self.runOp(function, self.x_old.get_bit_array())
+        new_score = function(self.x_new.get_bit_array())
+        old_score = function(self.x_old.get_bit_array())
 
         score = new_score / old_score > u
 
         return score
-
-    def runOp(self, op, val):
-        return op(val)
