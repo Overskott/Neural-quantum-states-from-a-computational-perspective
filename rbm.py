@@ -4,18 +4,24 @@ import numpy as np
 
 class RBM(object):
 
-    def __init__(self, state, state_bias=None, hidden=None, hidden_bias=None, weights=None):
+    def __init__(self, visible_layer, visible_bias=None, hidden_layer=None, hidden_bias=None, weights=None):
 
-        self.s = state
+        self.s = visible_layer
         self.n = len(self.s)
-        if state_bias is None:
+        if visible_bias is None:
             self.b = np.random.rand(self.n)  # Visible layer bias
+        else:
+            self.b = visible_bias
 
-        if hidden is None:
+        if hidden_layer is None:
             self.h = np.asarray([random.randint(0, 1) for _ in range(self.n)])  # Hidden layer state
+        else:
+            self.h = hidden_layer
 
         if hidden_bias is None:
             self.c = np.random.rand(self.n)  # Hidden layer bias
+        else:
+            self.c = hidden_bias
 
         if weights is None:
             self.W = np.random.rand(self.n, self.n)  # s - h weights

@@ -20,20 +20,6 @@ class State(object):
     def __str__(self) -> str:
         return str(self.get_bit_array())
 
-    def value_to_bit_array(self):
-        bit_array = np.zeros(self._length)
-        binary = format(self._value, 'b')
-        index = 1
-
-        for c in binary:
-            bit_array[len(binary) - index] = int(c)
-            index += 1
-            np.flip(bit_array)
-
-        return np.flip(bit_array)  # Flipping to return in 'least significant bit' format
-
-
-
     def get_length(self):
         return self._length
 
@@ -46,6 +32,27 @@ class State(object):
     def set_value(self, value):
         self._value = int(value)
         self._bit_array = self.value_to_bit_array()
+
+    def value_to_bit_array(self):
+        bit_array = np.zeros(self._length)
+        binary = format(self._value, 'b')
+        index = 1
+
+        for c in binary:
+            bit_array[len(binary) - index] = int(c)
+            index += 1
+            np.flip(bit_array)
+
+        return np.flip(bit_array)  # Flipping to return in 'least significant bit' format
+
+    def bit_array_to_value(self):
+        value = 0
+        index = self._length - 1
+        for bit in self._bit_array:
+            value += bit * 2 ** index
+            index -= 1
+
+        return value
 
     def generate_perm(self) -> int:
         """Takes a _length as input, and returns a randomly generated _number with binary _number _length = _length"""
@@ -65,12 +72,3 @@ class State(object):
             self._bit_array[index] = 0
         else:
             self._bit_array[index] = 1
-
-    def bit_array_to_value(self):
-        value = 0
-        index = self._length - 1
-        for bit in self._bit_array:
-            value += bit * 2 ** index
-            index -= 1
-
-        return value
