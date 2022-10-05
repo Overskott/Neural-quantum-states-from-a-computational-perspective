@@ -2,7 +2,7 @@
 import random
 
 
-class Hamiltonian(object):
+class Hamiltonian():
 
     def __init__(self, size):
         self.size = size

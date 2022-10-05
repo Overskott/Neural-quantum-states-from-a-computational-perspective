@@ -11,7 +11,7 @@ class Walker(object):
     def __init__(self, state: State, burn_in_steps, steps):
         self.burn_in = burn_in_steps
         self.steps = steps
-        self.walk_results = np.zeros(self.steps)
+        self.walk_results = []
         self.current_state = state
         self.next_state = copy.deepcopy(self.current_state)
         self.acceptance_rate = 0
@@ -22,10 +22,7 @@ class Walker(object):
     def get_walk_results(self):
         return self.walk_results
 
-    def append_walk_results(self, state):
-        np.append(self.walk_results, state, axis=0)
-
-    def random_walk(self, function):
+    def random_walk(self, function, flips=1):
 
         for i in range(self.burn_in):
             self.next_state.flip()
@@ -37,23 +34,22 @@ class Walker(object):
 
         for i in range(self.steps):
             self.next_state.flip()
+            self.walk_results.append(copy.deepcopy(self.current_state))
 
             if self.acceptance_criterion(function):
                 self.current_state.set_value(self.next_state.get_value())
-                self.walk_results[i] = self.current_state.get_value()
                 self.acceptance_rate += 1
 
             else:
                 self.next_state.set_value(self.current_state.get_value())
-                # TODO Do you add a state if the walker dont move? Do you count it as a step?
 
         return self.next_state
 
     def average_acceptance(self):
         return self.acceptance_rate / self.steps
 
-    def acceptance_criterion(self, function, sigma=1.5) -> bool:
-        u = random.uniform(0, sigma)
+    def acceptance_criterion(self, function) -> bool:
+        u = random.uniform(0, 1)
 
         new_score = function(self.next_state.get_bit_array())
         old_score = function(self.current_state.get_bit_array())

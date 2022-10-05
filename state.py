@@ -1,18 +1,24 @@
 import random
 import numpy as np
+import utils
 
 
 class State(object):
 
-    def __init__(self, length: int, value=None):
+    def __init__(self, length: int, value: int = None):
+        """
+
+        :param length: State binary array length i.e. number of qubits in the system
+        :param value: State value ranging form 0, 2^length - 1
+        """
         self._length = length
 
         if value is None:
-            self._value = self.generate_perm()
+            self._value = int(random.randint(0, (2 ** self._length)-1))
         else:
             self._value = value
 
-        self._bit_array = self.value_to_bit_array()
+        self._bit_array = utils.int_to_binary_array(self._value, self._length)
 
     def __len__(self):
         return self._length
@@ -20,52 +26,38 @@ class State(object):
     def __str__(self) -> str:
         return str(self.get_bit_array())
 
+    def __int__(self) -> int:
+        return self._value
+
+    def __lt__(self, other):
+        return self._value < other.get_value()
+
+    def __le__(self, other):
+        return self._value <= other.get_value()
+
     def get_length(self):
         return self._length
 
     def get_bit_array(self):
         return self._bit_array
 
-    def get_value(self):
+    def get_value(self) -> int:
         return self._value
 
     def set_value(self, value):
         self._value = int(value)
-        self._bit_array = self.value_to_bit_array()
+        self._bit_array = utils.int_to_binary_array(self._value, self._length)
 
-    def value_to_bit_array(self):
-        bit_array = np.zeros(self._length)
-        binary = format(self._value, 'b')
-        index = 1
-
-        for c in binary:
-            bit_array[len(binary) - index] = int(c)
-            index += 1
-            np.flip(bit_array)
-
-        return np.flip(bit_array)  # Flipping (reversing) to return in 'least significant bit' format
-
-    def bit_array_to_value(self):
-        """Updated the self.value value based on the bit_array value"""
-        value = 0
-        index = self._length - 1
-        for bit in self._bit_array:
-            value += bit * 2 ** index
-            index -= 1
-
-        return value
-
-    def generate_perm(self) -> int:
-        """Takes a _length as input, and returns a randomly generated _number with binary _number _length = _length"""
-        permutation = random.randint(0, (2 ** self._length)-1)
-        return permutation
+    def set_bit_array(self, bit_array):
+        self._bit_array = bit_array
+        self._value = utils.binary_array_to_int(bit_array)
 
     def flip(self, flips: int = 1) -> None:
         """"""
         for i in range(flips):
             flip_index = random.randint(0, self._length - 1)
             self.flip_bit(flip_index)
-            self._value = self.bit_array_to_value()
+            self._value = utils.binary_array_to_int(self._bit_array)
 
     def flip_bit(self, index):
         """Flips (0->1 or 1->0) the bit on given index of the state"""
