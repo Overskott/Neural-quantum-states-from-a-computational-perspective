@@ -5,6 +5,7 @@ import utils
 from state import State
 from mcmc import Walker
 
+
 class RBM(object):
 
     def __init__(self, visible_layer, visible_bias=None, hidden_bias=None, weights=None):
@@ -42,18 +43,17 @@ class RBM(object):
 
         return product * bias
 
-    def local_energy(self, hamiltonian, locale: State):
+    def local_energy(self, hamiltonian, spin_config: State):
         """Calculates the local energy of the RBM in state s"""
 
-        size = hamiltonian.shape[0]
+        h_size = hamiltonian.shape[0]
+        i = spin_config.get_value()
+        local_state = spin_config.get_bit_array()
         local_energy = 0
-        i = locale.get_value()
-        local_state = locale.get_bit_array()
 
-
-        for j in range(size):
+        for j in range(h_size):
             p_i = self.probability(local_state)
-            p_j = self.probability(utils.int_to_binary_array(j, locale.get_length()))
+            p_j = self.probability(utils.int_to_binary_array(j, spin_config.get_length()))
 
             h_ij = hamiltonian[i, j]
 

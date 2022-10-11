@@ -6,10 +6,10 @@ from utils import *
 
 if __name__ == '__main__':
 
-    burn_in_steps = 100  # Number of steps before collecting points
-    walker_steps = 1000  # Number of steps before walker termination
+    burn_in_steps = 500  # Number of steps before collecting points
+    walker_steps = 2000  # Number of steps before walker termination
     bitstring_length = 4  # Number of qubits
-    flips = 2  # Hamming distance traveled between points
+    flips = 1  # Hamming distance traveled between points
     start_state = State(bitstring_length)
 
     b = random_array(bitstring_length)
@@ -56,9 +56,11 @@ if __name__ == '__main__':
 
     print(rbm.get_rbm_energy(walker, H))
 
+    print(f"eigenvalues: {np.diag(H)}")
+
     plt.figure(0)
-    plt.hist(history, density=True, bins=2**bitstring_length)
-    plt.plot(result_list / norm)
+    plt.hist(history, density=True, bins=2**bitstring_length, edgecolor="black", align='mid')
+    plt.scatter([x for x in range(2**bitstring_length)], (result_list / norm), color='red')
     plt.show()
 
 
