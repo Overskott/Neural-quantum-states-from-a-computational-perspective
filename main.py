@@ -15,7 +15,7 @@ if __name__ == '__main__':
     b = random_array(bitstring_length)
     c = random_array(bitstring_length)
     W = random_matrix(bitstring_length)
-    H = random_symmetric_matrix(2**bitstring_length)
+    H =  random_symmetric_matrix(2**bitstring_length)
 
     #b = np.array([-0.78147528, -0.76629846, 0.60323094])
     #c = np.array([0.10772212, -0.09495096, 0.96237605])

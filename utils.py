@@ -35,3 +35,24 @@ def binary_array_to_int(binary_array):
 
     return value
 
+
+def minimize_rbm_energy(rbm, x_0):
+    pass
+
+
+def set_rbm_variables(rbm, x_0: np.ndarray):
+    """
+    Sets the RBM variables to the values in x_0
+
+    b = x_0[:len(rbm.b)] is the visible layer bias
+    c = x_0[len(rbm.b):len(rbm.c)] is the hidden layer bias
+    W = x_0[np.shape(W)] is the weights
+
+    """
+
+    pass
+    #rbm.b =
+    #rbm.c =
+    #rbm.W =
+
+    #return rbm

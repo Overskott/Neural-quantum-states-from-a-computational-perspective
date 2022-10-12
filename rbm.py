@@ -26,7 +26,6 @@ class RBM(object):
             self.W = np.random.rand(self.n, self.n)  # s - h weights
         else:
             self.W = weights
-        # normalization TODO Hard to calculate, no need bco metropolis
 
     def set_visible(self, state):
         self.s = state
@@ -69,3 +68,4 @@ class RBM(object):
             energy += self.local_energy(hamiltonian, state)
 
         return energy / len(distribution)
+
