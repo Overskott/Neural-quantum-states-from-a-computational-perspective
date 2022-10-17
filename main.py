@@ -2,20 +2,23 @@ import matplotlib.pyplot as plt
 from mcmc import *
 from rbm import RBM
 from utils import *
+from scipy import optimize
 
 
 if __name__ == '__main__':
 
-    burn_in_steps = 500  # Number of steps before collecting points
-    walker_steps = 2000  # Number of steps before walker termination
-    bitstring_length = 4  # Number of qubits
+    burn_in_steps = 20  # Number of steps before collecting points
+    walker_steps = 100  # Number of steps before walker termination
+    bitstring_length = 3  # Number of qubits
     flips = 1  # Hamming distance traveled between points
     start_state = State(bitstring_length)
 
-    b = random_array(bitstring_length)
-    c = random_array(bitstring_length)
-    W = random_matrix(bitstring_length)
-    H =  random_symmetric_matrix(2**bitstring_length)
+    low = 0
+
+    b = random_array(bitstring_length, low=low)
+    c = random_array(bitstring_length, low=low)
+    W = random_matrix(bitstring_length, low=low)
+    H = random_symmetric_matrix(2**bitstring_length, low=low)
 
     #b = np.array([-0.78147528, -0.76629846, 0.60323094])
     #c = np.array([0.10772212, -0.09495096, 0.96237605])
@@ -47,21 +50,26 @@ if __name__ == '__main__':
     # Plotting histogram with results
     norm = sum(result_list)
 
-    print(100 * (result_list / norm))
+    # print(100 * (result_list / norm))
 
     # for i in range(2 ** bitstring_length):
     #    print(rbm.local_energy(H, walker, i))
 
     history = [state.get_value() for state in walker.get_walk_results()]
 
-    print(rbm.get_rbm_energy(walker, H))
+    print(f"Estimated energy: {rbm.get_rbm_energy(walker, H)}")
+    print(f"Lowest energy: {min(np.linalg.eigvals(H))}")
+    print("Optimizing...")
+    res = optimize.minimize(rbm.minimize_energy, rbm.get_variable_array(), (walker, H))
 
-    print(f"eigenvalues: {np.diag(H)}")
+    rbm.set_variables_from_array(res.x)
+    print(f"Estimated energy: {rbm.get_rbm_energy(walker, H)}")
+    print(f"Lowest energy: {min(np.linalg.eigvals(H))}")
 
-    plt.figure(0)
-    plt.hist(history, density=True, bins=2**bitstring_length, edgecolor="black", align='mid')
-    plt.scatter([x for x in range(2**bitstring_length)], (result_list / norm), color='red')
-    plt.show()
+    # plt.figure(0)
+    # plt.hist(history, density=True, bins=2**bitstring_length, edgecolor="black", align='mid')
+    # plt.scatter([x for x in range(2**bitstring_length)], (result_list / norm), color='red')
+    # plt.show()
 
 
 

@@ -21,6 +21,12 @@ W = np.array([[-0.99002308, -0.98484, -0.99256982],
 
 start_state = State(size)
 rbm = RBM(start_state, visible_bias=b, hidden_bias=c, weights=W)
-theta_array = utils.create_variable_array(rbm)
 
-print(theta_array)
+test = rbm.get_variable_array()
+
+rbm.set_variables_from_array(test)
+
+test_h = utils.generate_positive_energy_hamiltonian(size)
+
+print(test_h)
+print(min(np.linalg.eigvals()))

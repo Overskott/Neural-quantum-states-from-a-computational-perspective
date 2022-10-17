@@ -14,13 +14,39 @@ def random_symmetric_matrix(size, low=-1, high=1):
     return np.tril(a) + np.tril(a, -1).T
 
 
-def random_hamiltonian(n_qubits: int, low=-1, high=1):
+def random_hamiltonian(n_qubits: int):
     """Generate a random hamiltonian matrix of size n_qubits x n_qubits"""
-    re = np.random.uniform(low, high, (n_qubits, n_qubits))
-    im = np.random.uniform(low, high, (n_qubits, n_qubits)) * 1j
+    re = np.random.normal(0, 1, (n_qubits, n_qubits))
+    im = np.random.normal(0, 1, (n_qubits, n_qubits)) * 1j
     ginibre = re + im
 
     hamiltonian = ginibre + ginibre.T.conj()
+
+    return hamiltonian
+
+
+def generate_positive_energy_hamiltonian(n_qubits: int):
+    G = np.random.normal(0, 1, (n_qubits, n_qubits))
+
+    H = G + np.transpose(G)
+
+    eig, eigvec = np.linalg.eig(H)
+    gs_index = np.argmin(eig)
+    gs = eigvec[gs_index]
+    gs = gs/(np.sum(gs**2))
+
+    beta = 0
+    ground_state = np.min(eig)
+    hamiltonian = None
+
+    while ground_state < 0:
+        beta += 1
+
+        hamiltonian = H - beta * (np.transpose(gs) @ gs)
+        ground_state = np.min(np.linalg.eigvals(hamiltonian))
+
+        if beta % 1000 == 0:
+            print(f"Beta: {beta}, ground state: {ground_state}")
 
     return hamiltonian
 
@@ -45,29 +71,3 @@ def binary_array_to_int(binary_array):
         value += bit * 2 ** i
 
     return value
-
-
-def minimize_rbm_energy(rbm, x_0):
-    pass
-
-
-def create_variable_array(rbm):
-    """Creates a variable array from the RBM variables"""
-    return np.concatenate((rbm.b, rbm.c, rbm.W.flatten()))  # Flattening the weights matrix
-
-def set_rbm_variables(rbm, x_0: np.ndarray):
-    """
-    Sets the RBM variables to the values in x_0
-
-    b = x_0[:len(rbm.b)] is the visible layer bias
-    c = x_0[len(rbm.b):len(rbm.c)] is the hidden layer bias
-    W = x_0[np.shape(W)] is the weights
-
-    """
-
-    pass
-    #rbm.b =
-    #rbm.c =
-    #rbm.W =
-
-    #return rbm

@@ -8,7 +8,7 @@ from mcmc import Walker
 
 class RBM(object):
 
-    def __init__(self, visible_layer, visible_bias=None, hidden_bias=None, weights=None):
+    def __init__(self, visible_layer, visible_bias=None, hidden_bias=None, weights: np.ndarray=None):
 
         self.s = visible_layer
         self.n = len(self.s)
@@ -29,6 +29,28 @@ class RBM(object):
 
     def set_visible(self, state):
         self.s = state
+
+    def get_variable_array(self):
+        """Creates a variable array from the RBM variables"""
+        return np.concatenate((self.b, self.c, self.W.flatten()))  # Flattening the weights matrix
+
+    def set_variables_from_array(self, x_0: np.ndarray):
+        """
+        Sets the RBM variables to the values in x_0
+
+        b = x_0[:len(self.b)] is the visible layer bias
+        c = x_0[len(self.b):len(self.b)+len(self.c)] is the hidden layer bias
+        W = x_0[:len(self.b)+len(self.c)] is the weights
+        """
+
+        dim_0, dim_1 = np.shape(self.W)
+
+        if len(x_0) != dim_1 * dim_0 + dim_1 + dim_0:
+            raise ValueError("Array myst be of correct size.")
+
+        self.b = x_0[:len(self.b)]
+        self.c = x_0[len(self.b):len(self.b) + len(self.c)]
+        self.W = x_0[len(self.b)+len(self.b):].reshape(dim_0, dim_1)
 
     def probability(self, bit_array: np.ndarray) -> float:
         """ Calculates the probability of finding the RBM in state s """
@@ -61,11 +83,22 @@ class RBM(object):
         return local_energy
 
     def get_rbm_energy(self, walker: Walker, hamiltonian):
-
         distribution = walker.get_walk_results()
         energy = 0
         for state in distribution:
             energy += self.local_energy(hamiltonian, state)
 
         return energy / len(distribution)
+
+    def minimize_energy(self, x_0: np.ndarray, *args):
+        self.set_variables_from_array(x_0)
+
+        walker = args[0]
+        hamiltonian = args[1]
+
+        return self.get_rbm_energy(walker, hamiltonian)
+
+
+
+
 
