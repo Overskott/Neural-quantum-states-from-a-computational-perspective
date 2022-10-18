@@ -7,18 +7,23 @@ from scipy import optimize
 
 if __name__ == '__main__':
 
-    burn_in_steps = 20  # Number of steps before collecting points
-    walker_steps = 100  # Number of steps before walker termination
-    bitstring_length = 3  # Number of qubits
+    burn_in_steps = 1000  # Number of steps before collecting points
+    walker_steps = 10000  # Number of steps before walker termination
+    seed = 42  # Seed for random number generator
+    np.random.seed(seed)
+
+    visible = 3  # Number of qubits
+    hidden = 6  # Number of hidden nodes
+
     flips = 1  # Hamming distance traveled between points
-    start_state = State(bitstring_length)
+    start_state = State(visible)
 
-    low = 0
+    low = -1
 
-    b = random_array(bitstring_length, low=low)
-    c = random_array(bitstring_length, low=low)
-    W = random_matrix(bitstring_length, low=low)
-    H = random_symmetric_matrix(2**bitstring_length, low=low)
+    b = random_array(visible, low=low)
+    c = random_array(hidden, low=low)
+    W = random_matrix(visible, hidden, low=low)
+    H = generate_positive_ground_state_hamiltonian(visible)
 
     #b = np.array([-0.78147528, -0.76629846, 0.60323094])
     #c = np.array([0.10772212, -0.09495096, 0.96237605])
@@ -41,11 +46,10 @@ if __name__ == '__main__':
 
     result_list = []
 
-    rbm = RBM(np.array([0, 0, 0]), visible_bias=b, hidden_bias=c,
-              weights=W)  # Initializing RBM currently with random configuration and parameters
+    #rbm = RBM(start_state, visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
 
-    for i in range(2 ** bitstring_length):
-        result_list.append(rbm.probability(int_to_binary_array(i, bitstring_length)))
+    #for i in range(2 ** bitstring_length):
+    #    result_list.append(rbm.probability(int_to_binary_array(i, bitstring_length)))
 
     # Plotting histogram with results
     norm = sum(result_list)
@@ -57,14 +61,16 @@ if __name__ == '__main__':
 
     history = [state.get_value() for state in walker.get_walk_results()]
 
-    print(f"Estimated energy: {rbm.get_rbm_energy(walker, H)}")
-    print(f"Lowest energy: {min(np.linalg.eigvals(H))}")
-    print("Optimizing...")
-    res = optimize.minimize(rbm.minimize_energy, rbm.get_variable_array(), (walker, H))
+    print(f"Estimated ground state: {rbm.get_rbm_energy(walker, H)}")
+    walker = Walker(start_state, burn_in_steps, walker_steps)
+    walker.random_walk(rbm.probability, flips)
+    print(f"Estimated ground state: {rbm.get_rbm_energy(walker, H)}")
+    print(f"Ground state: {min(np.linalg.eigvals(H))}")
+    #print("Optimizing...")
+    #res = optimize.minimize(rbm.minimize_energy, rbm.get_variable_array(), (walker, H), options={'disp': True})
 
-    rbm.set_variables_from_array(res.x)
-    print(f"Estimated energy: {rbm.get_rbm_energy(walker, H)}")
-    print(f"Lowest energy: {min(np.linalg.eigvals(H))}")
+    #rbm.set_variables_from_array(res.x)
+    #print(f"New estimated ground state: {rbm.get_rbm_energy(walker, H)}")
 
     # plt.figure(0)
     # plt.hist(history, density=True, bins=2**bitstring_length, edgecolor="black", align='mid')

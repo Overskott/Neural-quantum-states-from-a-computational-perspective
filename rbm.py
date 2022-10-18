@@ -43,24 +43,24 @@ class RBM(object):
         W = x_0[:len(self.b)+len(self.c)] is the weights
         """
 
-        dim_0, dim_1 = np.shape(self.W)
+        dim_0, dim_1 = np.shape(self.W)  # dim_0 visible layer, dim_1 hidden layer
 
-        if len(x_0) != dim_1 * dim_0 + dim_1 + dim_0:
+        if len(x_0) != dim_0 * dim_1 + dim_0 + dim_1:
             raise ValueError("Array myst be of correct size.")
 
         self.b = x_0[:len(self.b)]
         self.c = x_0[len(self.b):len(self.b) + len(self.c)]
-        self.W = x_0[len(self.b)+len(self.b):].reshape(dim_0, dim_1)
+        self.W = x_0[len(self.b)+len(self.c):].reshape(dim_0, dim_1)
 
-    def probability(self, bit_array: np.ndarray) -> float:
+    def probability(self, configuration: np.ndarray) -> float:
         """ Calculates the probability of finding the RBM in state s """
         product = 1
 
         for i in range(self.n):
-            scalar = (self.W[i, :] @ bit_array) + self.c[i]
+            scalar = (self.W[:, i] @ configuration) + self.c[i]
             product *= (1 + np.exp(-scalar - self.c[i]))
 
-        bias = np.exp(np.transpose(self.b) @ bit_array)
+        bias = np.exp(np.transpose(self.b) @ configuration)
 
         return product * bias
 
@@ -91,10 +91,13 @@ class RBM(object):
         return energy / len(distribution)
 
     def minimize_energy(self, x_0: np.ndarray, *args):
-        self.set_variables_from_array(x_0)
 
+        self.set_variables_from_array(x_0)
         walker = args[0]
         hamiltonian = args[1]
+
+        walker.clear_walk_results()
+        walker.random_walk(self.probability)
 
         return self.get_rbm_energy(walker, hamiltonian)
 

@@ -8,7 +8,7 @@ from state import State
 
 class Walker(object):
 
-    def __init__(self, state: State, burn_in_steps, steps):
+    def __init__(self, state, burn_in_steps, steps):
         self.burn_in = burn_in_steps
         self.steps = steps
         self.walk_results = []
@@ -21,6 +21,9 @@ class Walker(object):
 
     def get_walk_results(self):
         return self.walk_results
+
+    def clear_walk_results(self):
+        self.walk_results = []
 
     def random_walk(self, function, flips=1):
 

@@ -5,10 +5,11 @@ def random_array(size, low=-1, high=1):
     return np.random.uniform(low, high, size)
 
 
-def random_matrix(size, low=-1, high=1):
-    return np.random.uniform(low, high, (size, size))
+def random_matrix(size_x, size_y, low=-1, high=1):
+    return np.random.uniform(low, high, (size_x, size_y))
 
 
+@DeprecationWarning
 def random_symmetric_matrix(size, low=-1, high=1):
     a = np.random.uniform(low, high, (size, size))
     return np.tril(a) + np.tril(a, -1).T
@@ -25,28 +26,28 @@ def random_hamiltonian(n_qubits: int):
     return hamiltonian
 
 
-def generate_positive_energy_hamiltonian(n_qubits: int):
-    G = np.random.normal(0, 1, (n_qubits, n_qubits))
+def generate_positive_ground_state_hamiltonian(n_qubits: int):
+    size = 2**n_qubits
+    G = np.random.normal(0, 1, (size, size))
 
     H = G + np.transpose(G)
 
-    eig, eigvec = np.linalg.eig(H)
-    gs_index = np.argmin(eig)
-    gs = eigvec[gs_index]
-    gs = gs/(np.sum(gs**2))
+    a = np.random.uniform(0, 1, size)
+    a = a / (np.sum(a ** 2))
 
     beta = 0
-    ground_state = np.min(eig)
-    hamiltonian = None
+    hamiltonian = 0
+    gs = np.array([-1, 1])
 
-    while ground_state < 0:
-        beta += 1
+    while not (np.all(gs > 0) or np.all(gs < 0)):
+        beta += 0.1
 
-        hamiltonian = H - beta * (np.transpose(gs) @ gs)
-        ground_state = np.min(np.linalg.eigvals(hamiltonian))
+        hamiltonian = H - beta * (np.transpose(a) @ a)
 
-        if beta % 1000 == 0:
-            print(f"Beta: {beta}, ground state: {ground_state}")
+        eig, eigvec = np.linalg.eig(hamiltonian)
+        gs_index = np.argmin(eig)
+        gs = eigvec[:, gs_index]
+        gs = gs / (np.sum(gs ** 2))
 
     return hamiltonian
 

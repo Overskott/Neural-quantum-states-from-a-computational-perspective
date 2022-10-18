@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import utils
 from rbm import RBM
 from state import State
-import hamiltonian
 from utils import *
 
 low = -1
@@ -19,14 +18,23 @@ W = np.array([[-0.99002308, -0.98484, -0.99256982],
              [-0.68841895, -0.53552465, -0.64506059],
              [-0.26150969, 0.03064657, -0.26203074]])
 
+
 start_state = State(size)
 rbm = RBM(start_state, visible_bias=b, hidden_bias=c, weights=W)
 
-test = rbm.get_variable_array()
+test_encoding = rbm.get_variable_array()
 
-rbm.set_variables_from_array(test)
+print(test_encoding)
+test_encoding = test_encoding * 10
+rbm.set_variables_from_array(test_encoding)
 
-test_h = utils.generate_positive_energy_hamiltonian(size)
+print(rbm.b)
+print(rbm.c)
+print(rbm.W)
 
-print(test_h)
-print(min(np.linalg.eigvals()))
+test_h = utils.generate_positive_ground_state_hamiltonian(size)
+
+eig, eigvec = np.linalg.eig(test_h)
+gs_index = np.argmin(eig)
+gs = eigvec[:, gs_index]
+gs = gs / (np.sum(gs ** 2))
