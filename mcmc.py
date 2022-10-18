@@ -1,18 +1,21 @@
 import copy
 import random
-
 import numpy as np
+from config_parser import get_config_file
 
 from state import State
 
 
 class Walker(object):
 
-    def __init__(self, state, burn_in_steps, steps):
-        self.burn_in = burn_in_steps
-        self.steps = steps
+    def __init__(self):
+
+        data = get_config_file()['parameters']  # Load the config file
+
+        self.burn_in = data['burn_in_steps']
+        self.steps = data['walker_steps']
         self.walk_results = []
-        self.current_state = state
+        self.current_state = State(np.random.randint(0, 2, data['visible_size']))
         self.next_state = copy.deepcopy(self.current_state)
         self.acceptance_rate = 0
 

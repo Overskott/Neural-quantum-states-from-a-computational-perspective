@@ -1,6 +1,7 @@
 import random
 import numpy as np
 import utils
+from config_parser import get_config_file
 
 
 class State(object):
@@ -11,7 +12,9 @@ class State(object):
         :param length: State binary array length i.e. number of qubits in the system
         :param value: State value ranging form 0, 2^length - 1
         """
-        self._length = length
+        data = get_config_file()['parameters']  # Load the config file
+
+        self._length = data['visible_size']  # Get number of visible nodes from the config file
 
         if value is None:
             self._value = int(random.randint(0, (2 ** self._length)-1))

@@ -3,39 +3,28 @@ from mcmc import *
 from rbm import RBM
 from utils import *
 from scipy import optimize
-
+from config_parser import get_config_file
 
 if __name__ == '__main__':
 
-    burn_in_steps = 1000  # Number of steps before collecting points
-    walker_steps = 10000  # Number of steps before walker termination
+    parameters = get_config_file()['parameters']
+
+    visible_layer_size = parameters['visible_size']  # Number of qubits
+    hidden_layer_size = parameters['hidden_size']  # Number of hidden nodes
+    burn_in_steps = parameters['burn_in_steps']  # Number of steps before collecting points
+    walker_steps = parameters['walker_steps']  # Number of steps before walker termination
+    flips = parameters['hamming_distance']  # Hamming distance traveled between points
+
     seed = 42  # Seed for random number generator
     np.random.seed(seed)
 
-    visible = 3  # Number of qubits
-    hidden = 6  # Number of hidden nodes
+    b = random_array(visible_layer_size)  # Visible layer bias
+    c = random_array(hidden_layer_size)  # Hidden layer bias
+    W = random_matrix(visible_layer_size, hidden_layer_size)  # Visible - hidden weights
+    H = generate_positive_ground_state_hamiltonian(visible_layer_size)  # Hamiltonian
 
-    flips = 1  # Hamming distance traveled between points
-    start_state = State(visible)
-
-    low = -1
-
-    b = random_array(visible, low=low)
-    c = random_array(hidden, low=low)
-    W = random_matrix(visible, hidden, low=low)
-    H = generate_positive_ground_state_hamiltonian(visible)
-
-    #b = np.array([-0.78147528, -0.76629846, 0.60323094])
-    #c = np.array([0.10772212, -0.09495096, 0.96237605])
-    #W = np.array([[-0.99002308, -0.98484, -0.99256982],
-    #              [-0.68841895, -0.53552465, -0.64506059],
-    #              [-0.26150969, 0.03064657, -0.26203074]])
-    #H = np.array([[0.60458211, 0.31568608, 0.12596736],
-    #                [0.31568608, 0.19786036, 0.34229307],
-    #                [0.12596736, 0.34229307, 0.48115528]])
-
-    walker = Walker(start_state, burn_in_steps, walker_steps)
-    rbm = RBM(start_state, visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
+    walker = Walker()
+    rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
 
     walker.random_walk(rbm.probability, flips)
 
@@ -61,11 +50,16 @@ if __name__ == '__main__':
 
     history = [state.get_value() for state in walker.get_walk_results()]
 
-    print(f"Estimated ground state: {rbm.get_rbm_energy(walker, H)}")
-    walker = Walker(start_state, burn_in_steps, walker_steps)
+    estimate_1 = rbm.get_rbm_energy(walker, H)
+    print(f"Estimated ground state 1: {estimate_1}")
+
+    walker = Walker()
     walker.random_walk(rbm.probability, flips)
-    print(f"Estimated ground state: {rbm.get_rbm_energy(walker, H)}")
+    estimate_2 = rbm.get_rbm_energy(walker, H)
+    print(f"Estimated ground state 2: {estimate_2}")
+    print(f"Estimator difference: {np.abs((estimate_1 - estimate_2)/ ((estimate_1+estimate_2)/2)):.2%}")
     print(f"Ground state: {min(np.linalg.eigvals(H))}")
+
     #print("Optimizing...")
     #res = optimize.minimize(rbm.minimize_energy, rbm.get_variable_array(), (walker, H), options={'disp': True})
 

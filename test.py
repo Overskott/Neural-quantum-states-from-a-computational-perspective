@@ -19,8 +19,7 @@ W = np.array([[-0.99002308, -0.98484, -0.99256982],
              [-0.26150969, 0.03064657, -0.26203074]])
 
 
-start_state = State(size)
-rbm = RBM(start_state, visible_bias=b, hidden_bias=c, weights=W)
+rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)
 
 test_encoding = rbm.get_variable_array()
 

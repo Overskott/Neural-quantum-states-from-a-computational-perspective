@@ -4,31 +4,35 @@ import numpy as np
 import utils
 from state import State
 from mcmc import Walker
+from config_parser import get_config_file
 
 
 class RBM(object):
 
-    def __init__(self, visible_layer, visible_bias=None, hidden_bias=None, weights: np.ndarray=None):
+    def __init__(self, visible_bias=None, hidden_bias=None, weights: np.ndarray = None):
 
-        self.s = visible_layer
-        self.n = len(self.s)
+        data = get_config_file()['parameters']  # Load the config file
+
+        self.visible_size = data['visible_size']  # Get number of visible nodes from the config file
+        self.state = State(self.visible_size)
+
         if visible_bias is None:
-            self.b = np.random.uniform(-1, 1, self.n)  # Visible layer bias #
+            self.b = np.random.uniform(-1, 1, self.visible_size)  # Visible layer bias #
         else:
             self.b = visible_bias
 
         if hidden_bias is None:
-            self.c = np.random.uniform(-1, 1, self.n)  # Hidden layer bias
+            self.c = np.random.uniform(-1, 1, self.visible_size)  # Hidden layer bias
         else:
             self.c = hidden_bias
 
         if weights is None:
-            self.W = np.random.rand(self.n, self.n)  # s - h weights
+            self.W = np.random.rand(self.visible_size, self.visible_size)  # s - h weights
         else:
             self.W = weights
 
     def set_visible(self, state):
-        self.s = state
+        self.state = state
 
     def get_variable_array(self):
         """Creates a variable array from the RBM variables"""
@@ -52,11 +56,20 @@ class RBM(object):
         self.c = x_0[len(self.b):len(self.b) + len(self.c)]
         self.W = x_0[len(self.b)+len(self.c):].reshape(dim_0, dim_1)
 
+    def set_visible_bias(self, b):
+        self.b = b
+
+    def set_hidden_bias(self, c):
+        self.c = c
+
+    def set_weights(self, W):
+        self.W = W
+
     def probability(self, configuration: np.ndarray) -> float:
         """ Calculates the probability of finding the RBM in state s """
         product = 1
 
-        for i in range(self.n):
+        for i in range(self.visible_size):
             scalar = (self.W[:, i] @ configuration) + self.c[i]
             product *= (1 + np.exp(-scalar - self.c[i]))
 
