@@ -1,17 +1,17 @@
 import numpy as np
 
 
-def random_array(size, low=-1, high=1):
-    return np.random.uniform(low, high, size)
+def random_array(size, mu=0, sigma=1):
+    return np.random.normal(mu, sigma, size)
 
 
-def random_matrix(size_x, size_y, low=-1, high=1):
-    return np.random.uniform(low, high, (size_x, size_y))
+def random_matrix(size_x, size_y, mu=0, sigma=1):
+    return np.random.normal(mu, sigma, (size_x, size_y))
 
 
 @DeprecationWarning
-def random_symmetric_matrix(size, low=-1, high=1):
-    a = np.random.uniform(low, high, (size, size))
+def random_symmetric_matrix(size, mu=-1, sigma=1):
+    a = np.random.normal(mu, sigma, (size, size))
     return np.tril(a) + np.tril(a, -1).T
 
 
