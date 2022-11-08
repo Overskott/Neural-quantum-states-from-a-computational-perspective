@@ -1,6 +1,5 @@
 import random
-import numpy as np
-import utils
+import src.utils as utils
 from config_parser import get_config_file
 
 

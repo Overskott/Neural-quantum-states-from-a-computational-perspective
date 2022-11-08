@@ -1,9 +1,9 @@
 {
   "parameters":{
         "visible_size": 2,
-        "hidden_size": 4,
-        "burn_in_steps": 0,
-        "walker_steps": 10,
+        "hidden_size": 2,
+        "burn_in_steps": 100,
+        "walker_steps": 500,
         "hamming_distance": 1
   }
 }

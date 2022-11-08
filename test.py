@@ -1,12 +1,6 @@
-import random
-
-import numpy as np
-import matplotlib.pyplot as plt
-
-import utils
-from rbm import RBM
-from state import State
-from utils import *
+from src import utils
+from src.rbm import RBM
+from src.utils import *
 
 low = -1
 high = 1
@@ -23,17 +17,18 @@ rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)
 
 test_encoding = rbm.get_variable_array()
 
-print(test_encoding)
+# print(test_encoding)
 test_encoding = test_encoding * 10
 rbm.set_variables_from_array(test_encoding)
 
-print(rbm.b)
-print(rbm.c)
-print(rbm.W)
+# print(rbm.b)
+# print(rbm.c)
+# print(rbm.W)
 
 test_h = utils.generate_positive_ground_state_hamiltonian(size)
-
+print(test_h)
 eig, eigvec = np.linalg.eig(test_h)
 gs_index = np.argmin(eig)
 gs = eigvec[:, gs_index]
 gs = gs / (np.sum(gs ** 2))
+print(gs)

@@ -1,9 +1,8 @@
-import random
 import numpy as np
 
-import utils
-from state import State
-from mcmc import Walker
+import src.utils as utils
+from src.state import State
+from src.mcmc import Walker
 from config_parser import get_config_file
 
 

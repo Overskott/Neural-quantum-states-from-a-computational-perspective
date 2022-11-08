@@ -3,7 +3,7 @@ import random
 import numpy as np
 from config_parser import get_config_file
 
-from state import State
+from src.state import State
 
 
 class Walker(object):

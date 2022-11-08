@@ -1,9 +1,8 @@
-import matplotlib.pyplot as plt
-from mcmc import *
-from rbm import RBM
-from utils import *
-from scipy import optimize
+from src.mcmc import *
+from src.rbm import RBM
+from src.utils import *
 from config_parser import get_config_file
+from scipy import optimize
 
 if __name__ == '__main__':
 
@@ -60,11 +59,11 @@ if __name__ == '__main__':
     print(f"Estimator difference: {np.abs((estimate_1 - estimate_2)/ ((estimate_1+estimate_2)/2)):.2%}")
     print(f"Ground state: {min(np.linalg.eigvals(H))}")
 
-    #print("Optimizing...")
-    #res = optimize.minimize(rbm.minimize_energy, rbm.get_variable_array(), (walker, H), options={'disp': True})
+    print("Optimizing...")
+    res = optimize.minimize(rbm.minimize_energy, rbm.get_variable_array(), (walker, H), options={'disp': True})
 
-    #rbm.set_variables_from_array(res.x)
-    #print(f"New estimated ground state: {rbm.get_rbm_energy(walker, H)}")
+    rbm.set_variables_from_array(res.x)
+    print(f"New estimated ground state: {rbm.get_rbm_energy(walker, H)}")
 
     # plt.figure(0)
     # plt.hist(history, density=True, bins=2**bitstring_length, edgecolor="black", align='mid')
