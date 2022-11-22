@@ -3,6 +3,7 @@ from src.rbm import RBM
 from src.utils import *
 from config_parser import get_config_file
 from scipy import optimize
+import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
 
@@ -14,8 +15,8 @@ if __name__ == '__main__':
     walker_steps = parameters['walker_steps']  # Number of steps before walker termination
     flips = parameters['hamming_distance']  # Hamming distance traveled between points
 
-    seed = 42  # Seed for random number generator
-    np.random.seed(seed)
+    #seed = 42  # Seed for random number generator
+    #np.random.seed(seed)
 
     b = random_array(visible_layer_size)  # Visible layer bias
     c = random_array(hidden_layer_size)  # Hidden layer bias
@@ -26,6 +27,7 @@ if __name__ == '__main__':
     rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
 
     walker.random_walk(rbm.probability, flips)
+    history = [state.get_value() for state in walker.get_walk_results()]
 
     # Printing results
     print(f"Accept rate: {walker.average_acceptance()}")
@@ -36,8 +38,8 @@ if __name__ == '__main__':
 
     #rbm = RBM(start_state, visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
 
-    #for i in range(2 ** bitstring_length):
-    #    result_list.append(rbm.probability(int_to_binary_array(i, bitstring_length)))
+    for i in range(2 ** visible_layer_size):
+        result_list.append(rbm.probability(int_to_binary_array(i, visible_layer_size)))
 
     # Plotting histogram with results
     norm = sum(result_list)
@@ -47,28 +49,18 @@ if __name__ == '__main__':
     # for i in range(2 ** bitstring_length):
     #    print(rbm.local_energy(H, walker, i))
 
-    history = [state.get_value() for state in walker.get_walk_results()]
 
-    estimate_1 = rbm.get_rbm_energy(walker, H)
-    print(f"Estimated ground state 1: {estimate_1}")
 
-    walker = Walker()
-    walker.random_walk(rbm.probability, flips)
-    estimate_2 = rbm.get_rbm_energy(walker, H)
-    print(f"Estimated ground state 2: {estimate_2}")
-    print(f"Estimator difference: {np.abs((estimate_1 - estimate_2)/ ((estimate_1+estimate_2)/2)):.2%}")
-    print(f"Ground state: {min(np.linalg.eigvals(H))}")
 
-    print("Optimizing...")
-    res = optimize.minimize(rbm.minimize_energy, rbm.get_variable_array(), (walker, H), options={'disp': True})
+    plt.figure(0)
+    plt.hist(history, density=True, bins=2**visible_layer_size, edgecolor="black", align='mid')
+    plt.scatter([x for x in range(2**visible_layer_size)], (result_list / norm), color='red')
+    plt.title("RBM Probability Distribution")
+    plt.xlabel('State')
+    plt.ylabel('Probalility')
+    plt.legend(['Analytic Results', 'MCMC Results'])
 
-    rbm.set_variables_from_array(res.x)
-    print(f"New estimated ground state: {rbm.get_rbm_energy(walker, H)}")
-
-    # plt.figure(0)
-    # plt.hist(history, density=True, bins=2**bitstring_length, edgecolor="black", align='mid')
-    # plt.scatter([x for x in range(2**bitstring_length)], (result_list / norm), color='red')
-    # plt.show()
+    plt.show()
 
 
 

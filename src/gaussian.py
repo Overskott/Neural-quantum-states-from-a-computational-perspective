@@ -41,13 +41,17 @@ if __name__ == '__main__':
     normal_dist = lambda x: normal_distribution(x)
     #double_normal_dist = lambda x: double_normal_distribution(x, 400, sigma, mu/2, sigma*2, mu*2)
 
-    walker = Walker(start_state, burn_in_steps, walker_steps)
+    walker = Walker()
 
     walker.random_walk(normal_dist)
     history = [state.get_value() for state in walker.get_walk_results()]
 
     plt.hist(history, bins=2**bitstring_length, density=True)
     plt.plot([normal_dist(i) for i in range(2**bitstring_length)])
+    plt.title("Gaussian Probability Distribution")
+    plt.xlabel('State')
+    plt.ylabel('Probalility')
+    plt.legend(['Analytic Results', 'MCMC Results'])
 
     plt.show()
 
