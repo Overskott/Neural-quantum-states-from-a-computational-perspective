@@ -59,7 +59,7 @@ class Walker(object):
 
         new_score = function(self.next_state.get_bit_array())
         old_score = function(self.current_state.get_bit_array())
-
+        # TODO abs value squared with complex
         score = new_score / old_score > u
 
         return score

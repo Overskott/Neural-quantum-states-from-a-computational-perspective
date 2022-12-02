@@ -49,8 +49,7 @@ if __name__ == '__main__':
     # for i in range(2 ** bitstring_length):
     #    print(rbm.local_energy(H, walker, i))
 
-
-
+    print(rbm.get_rbm_energy(walker, H))
 
     plt.figure(0)
     plt.hist(history, density=True, bins=2**visible_layer_size, edgecolor="black", align='mid')

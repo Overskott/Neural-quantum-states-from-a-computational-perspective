@@ -65,6 +65,7 @@ class RBM(object):
         self.W = W
 
     def probability(self, configuration: np.ndarray) -> float:
+        #TODO Change form probability to aplitude ()
         """ Calculates the probability of finding the RBM in state s """
         product = 1
 
