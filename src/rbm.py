@@ -74,7 +74,21 @@ class RBM(object):
 
         bias = np.exp(np.transpose(self.b) @ configuration)
 
-        return product * bias
+        prob = product * bias
+
+        return np.sqrt(prob)
+
+    # def probability(self, configuration: np.ndarray) -> float:
+    #     """ Calculates the probability of finding the RBM in state s """
+    #     product = 1
+    #
+    #     for i in range(self.visible_size):
+    #         scalar = (self.W[:, i] @ configuration) + self.c[i]
+    #         product *= (1 + np.exp(-scalar - self.c[i]))
+    #
+    #     bias = np.exp(np.transpose(self.b) @ configuration)
+    #
+    #     return product * bias
 
     def local_energy(self, hamiltonian, spin_config: State):
         """Calculates the local energy of the RBM in state s"""

@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 
 
@@ -5,11 +7,26 @@ def random_array(size, mu=0, sigma=1):
     return np.random.normal(mu, sigma, size)
 
 
+def random_complex_array(size, mu=0, sigma=1):
+    re = np.random.normal(mu, sigma, size)
+    im = np.random.normal(mu, sigma, size) * 1j
+
+    return re + im
+
+
 def random_matrix(size_x, size_y, mu=0, sigma=1):
     return np.random.normal(mu, sigma, (size_x, size_y))
 
 
+def random_complex_matrix(size_x, size_y, mu=0, sigma=1):
+    re = np.random.normal(mu, sigma, (size_x, size_y))
+    im = np.random.normal(mu, sigma, (size_x, size_y)) * 1j
+
+    return re + im
+
+
 @DeprecationWarning
+# use random_hamiltonian instead
 def random_symmetric_matrix(size, mu=-1, sigma=1):
     a = np.random.normal(mu, sigma, (size, size))
     return np.tril(a) + np.tril(a, -1).T
@@ -72,3 +89,24 @@ def binary_array_to_int(binary_array):
         value += bit * 2 ** i
 
     return value
+
+
+def finite_difference(func, x, h=1e-5):
+    return (func(x + h) - func(x - h)) / (2 * h)
+
+
+def get_parameter_derivative(params: List[float], func, h=1e-5):
+
+    params_deriv = []
+
+    for param in params:
+        params_deriv.append(finite_difference(func, param, h))
+
+    return params_deriv
+
+
+def gradient_descesnt(func, params, learning_rate=0.01, n_steps=1000):
+    params = np.array(params)
+    for i in range(n_steps):
+        params = params - learning_rate * np.array(get_parameter_derivative(params, func))
+    return params
