@@ -2,6 +2,7 @@ import copy
 import random
 import numpy as np
 from config_parser import get_config_file
+import src.utils as utils
 
 from src.state import State
 
@@ -15,41 +16,39 @@ class Walker(object):
         self.burn_in = data['burn_in_steps']
         self.steps = data['walker_steps']
         self.walk_results = []
-        self.current_state = State(np.random.randint(0, 2, data['visible_size']))
+        self.current_state = np.random.randint(0, 2, data['visible_size'])
         self.next_state = copy.deepcopy(self.current_state)
         self.acceptance_rate = 0
 
     def get_steps(self):
         return self.steps
 
-    def get_walk_results(self):
+    def get_history(self):
         return self.walk_results
 
-    def clear_walk_results(self):
+    def clear_history(self):
         self.walk_results = []
 
     def random_walk(self, function, flips=1):
 
         for i in range(self.burn_in):
-            self.next_state.flip()
+            self.hamming_step(flips)
 
             if self.acceptance_criterion(function):
-                self.current_state.set_value(self.next_state.get_value())
+                self.current_state = copy.deepcopy(self.next_state)
             else:
-                self.next_state.set_value(self.current_state.get_value())
+                self.next_state = copy.deepcopy(self.current_state)
 
         for i in range(self.steps):
-            self.next_state.flip()
-            self.walk_results.append(copy.deepcopy(self.current_state))
+            self.hamming_step(flips)
+            self.walk_results.append(self.current_state)
 
             if self.acceptance_criterion(function):
-                self.current_state.set_value(self.next_state.get_value())
+                self.current_state = copy.deepcopy(self.next_state)
                 self.acceptance_rate += 1
 
             else:
-                self.next_state.set_value(self.current_state.get_value())
-
-        return self.next_state
+                self.next_state = copy.deepcopy(self.current_state)
 
     def average_acceptance(self):
         return self.acceptance_rate / self.steps
@@ -57,42 +56,27 @@ class Walker(object):
     def acceptance_criterion(self, function) -> bool:
         u = random.uniform(0, 1)
 
-        new_score = function(self.next_state.get_bit_array())
-        old_score = function(self.current_state.get_bit_array())
+        new_score = function(self.next_state)
+        old_score = function(self.current_state)
 
         score = new_score / old_score > u
 
         return score
 
+    def hamming_step(self, flips: int = 1) -> None:
 
-class Metropolis(object):
+        used_indexes = []
+        for i in range(flips):
+            flip_index = random.randint(0, self.current_state.size-1) # minus 1?
 
-    def __init__(self, walker_steps, x: State, distribution):
-        self.walker_steps = walker_steps
-        self._state_length = x.get_length()
-        self.x_new = copy.deepcopy(x)
-        self.x_old = State(x.get_length())
-        self.distribution = distribution
+            while flip_index in used_indexes:
+                flip_index = random.randint(0, self.current_state.size-1)
+                print("flip_index", flip_index)
 
-    def metropolis(self):
-        # TODO sjekke forskjell mellom reset av bit_string og ikke, mellom hver kjøring
-        accepted = 0
-        for i in range(self.walker_steps):
-            self.x_new.flip()
-            if self.acceptance_criterion(self.distribution):
-                self.x_old.set_value(self.x_new.get_value())
-                accepted += 1
-            else:
-                self.x_new.set_value(self.x_old.get_value())
-        accept_rate = accepted/self.walker_steps
-        return self.x_new, accept_rate
+            used_indexes.append(flip_index)
+            self.next_state[flip_index] = 1 - self.next_state[flip_index]
+            #self.flip_bit(flip_index)
 
-    def acceptance_criterion(self, function, sigma=1) -> bool:
-        u = random.uniform(0, sigma)
-
-        new_score = function(self.x_new.get_bit_array())
-        old_score = function(self.x_old.get_bit_array())
-
-        score = new_score / old_score > u
-
-        return score
+    def flip_bit(self, index):
+        """Flips (0->1 or 1->0) the bit on given index of the state"""
+        self.next_state[index] = 1 - self.next_state[index]

@@ -13,7 +13,7 @@ class RBM(object):
         data = get_config_file()['parameters']  # Load the config file
 
         self.visible_size = data['visible_size']  # Get number of visible nodes from the config file
-        self.state = State(self.visible_size)
+        self.state = utils.random_complex_array(self.visible_size)  # Set the initial state to a random complex array
 
         if visible_bias is None:
             self.b = np.random.uniform(-1, 1, self.visible_size)  # Visible layer bias #
@@ -66,17 +66,22 @@ class RBM(object):
 
     def probability(self, configuration: np.ndarray) -> float:
         """ Calculates the probability of finding the RBM in state s """
+
+        return np.abs(self.amplitude(configuration)) ** 2
+
+    def amplitude(self, state: np.ndarray) -> float:
+        """ Calculates the amplitude of finding the RBM in state s """
         product = 1
 
         for i in range(self.visible_size):
-            scalar = (self.W[:, i] @ configuration) + self.c[i]
-            product *= (1 + np.exp(-scalar - self.c[i]))
+            scalar = (self.W[:, i] @ state) + self.c[i]
+            product *= (1 + np.exp(-scalar))
 
-        bias = np.exp(np.transpose(self.b) @ configuration)
+        bias = np.exp(np.transpose(self.b) @ state)
 
-        prob = product * bias
+        amp = product * bias
 
-        return np.sqrt(prob)
+        return amp
 
     # def probability(self, configuration: np.ndarray) -> float:
     #     """ Calculates the probability of finding the RBM in state s """
@@ -90,26 +95,26 @@ class RBM(object):
     #
     #     return product * bias
 
-    def local_energy(self, hamiltonian, spin_config: State):
+    def local_energy(self, hamiltonian, spin_config: np.ndarray) -> float:
         """Calculates the local energy of the RBM in state s"""
 
         h_size = hamiltonian.shape[0]
-        i = spin_config.get_value()
-        local_state = spin_config.get_bit_array()
+        i = spin_config
+        local_state = spin_config
         local_energy = 0
 
         for j in range(h_size):
             p_i = self.probability(local_state)
-            p_j = self.probability(utils.int_to_binary_array(j, spin_config.get_length()))
+            p_j = self.probability(utils.int_to_binary_array(j, spin_config.size))
 
             h_ij = hamiltonian[i, j]
 
-            local_energy += float(h_ij * np.sqrt(p_j/p_i))
+            local_energy += h_ij * p_j/p_i
 
         return local_energy
 
     def get_rbm_energy(self, walker: Walker, hamiltonian):
-        distribution = walker.get_walk_results()
+        distribution = walker.get_history()
         energy = 0
         for state in distribution:
             energy += self.local_energy(hamiltonian, state)
@@ -122,7 +127,7 @@ class RBM(object):
         walker = args[0]
         hamiltonian = args[1]
 
-        walker.clear_walk_results()
+        walker.clear_history()
         walker.random_walk(self.probability)
 
         return self.get_rbm_energy(walker, hamiltonian)
