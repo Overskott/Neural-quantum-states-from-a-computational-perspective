@@ -1,8 +1,6 @@
 import numpy as np
 
 import src.utils as utils
-from src.state import State
-from src.mcmc import Walker
 from config_parser import get_config_file
 
 
@@ -33,11 +31,11 @@ class RBM(object):
     def set_visible(self, state):
         self.state = state
 
-    def get_variable_array(self):
+    def get_parameters_as_array(self):
         """Creates a variable array from the RBM variables"""
         return np.concatenate((self.b, self.c, self.W.flatten()))  # Flattening the weights matrix
 
-    def set_variables_from_array(self, x_0: np.ndarray):
+    def set_parameters_from_array(self, x_0: np.ndarray):
         """
         Sets the RBM variables to the values in x_0
 
@@ -95,42 +93,7 @@ class RBM(object):
     #
     #     return product * bias
 
-    def local_energy(self, hamiltonian, spin_config: np.ndarray) -> float:
-        """Calculates the local energy of the RBM in state s"""
 
-        h_size = hamiltonian.shape[0]
-        i = spin_config
-        local_state = spin_config
-        local_energy = 0
-
-        for j in range(h_size):
-            p_i = self.probability(local_state)
-            p_j = self.probability(utils.int_to_binary_array(j, spin_config.size))
-
-            h_ij = hamiltonian[i, j]
-
-            local_energy += h_ij * p_j/p_i
-
-        return local_energy
-
-    def get_rbm_energy(self, walker: Walker, hamiltonian):
-        distribution = walker.get_history()
-        energy = 0
-        for state in distribution:
-            energy += self.local_energy(hamiltonian, state)
-
-        return energy / len(distribution)
-
-    def minimize_energy(self, x_0: np.ndarray, *args):
-
-        self.set_variables_from_array(x_0)
-        walker = args[0]
-        hamiltonian = args[1]
-
-        walker.clear_history()
-        walker.random_walk(self.probability)
-
-        return self.get_rbm_energy(walker, hamiltonian)
 
 
 

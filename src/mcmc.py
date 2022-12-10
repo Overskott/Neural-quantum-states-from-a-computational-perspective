@@ -4,8 +4,6 @@ import numpy as np
 from config_parser import get_config_file
 import src.utils as utils
 
-from src.state import State
-
 
 class Walker(object):
 
@@ -15,9 +13,11 @@ class Walker(object):
 
         self.burn_in = data['burn_in_steps']
         self.steps = data['walker_steps']
-        self.walk_results = []
+        self.hamming_distance = data['hamming_distance']
         self.current_state = np.random.randint(0, 2, data['visible_size'])
         self.next_state = copy.deepcopy(self.current_state)
+
+        self.walk_results = []
         self.acceptance_rate = 0
 
     def get_steps(self):
@@ -29,24 +29,33 @@ class Walker(object):
     def clear_history(self):
         self.walk_results = []
 
-    def random_walk(self, function, flips=1):
+    def estimate_distribution(self, function, burn_in=True) -> None:
+        self.clear_history()
 
-        for i in range(self.burn_in):
-            self.hamming_step(flips)
+        if burn_in:
+            self.burn_in_walk(function)
 
-            if self.acceptance_criterion(function):
-                self.current_state = copy.deepcopy(self.next_state)
-            else:
-                self.next_state = copy.deepcopy(self.current_state)
+        self.random_walk(function)
+
+    def random_walk(self, function):
 
         for i in range(self.steps):
-            self.hamming_step(flips)
+            self.hamming_step(self.hamming_distance)
             self.walk_results.append(self.current_state)
 
             if self.acceptance_criterion(function):
                 self.current_state = copy.deepcopy(self.next_state)
                 self.acceptance_rate += 1
 
+            else:
+                self.next_state = copy.deepcopy(self.current_state)
+
+    def burn_in_walk(self, function):
+        for i in range(self.burn_in):
+            self.hamming_step(self.hamming_distance)
+
+            if self.acceptance_criterion(function):
+                self.current_state = copy.deepcopy(self.next_state)
             else:
                 self.next_state = copy.deepcopy(self.current_state)
 
@@ -77,6 +86,4 @@ class Walker(object):
             self.next_state[flip_index] = 1 - self.next_state[flip_index]
             #self.flip_bit(flip_index)
 
-    def flip_bit(self, index):
-        """Flips (0->1 or 1->0) the bit on given index of the state"""
-        self.next_state[index] = 1 - self.next_state[index]
+

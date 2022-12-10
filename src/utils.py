@@ -91,22 +91,29 @@ def binary_array_to_int(binary_array):
     return value
 
 
-def finite_difference(func, x, h=1e-5):
-    return (func(x + h) - func(x - h)) / (2 * h)
+def flip_bit(state: np.ndarray , index: int):
+    """Flips (0->1 or 1->0) the bit on given index of the state"""
+    state[index] = 1 - state[index]
 
 
-def get_parameter_derivative(params: List[float], func, h=1e-5):
+def normal_distribution(x) -> float:
+    """
 
-    params_deriv = []
+    :param x:
+    :param sigma:
+    :param mu:
+    """
+    sigma = 1
+    mu = 0
 
-    for param in params:
-        params_deriv.append(finite_difference(func, param, h))
+    if type(x) is not int:
+        x = binary_array_to_int(x)
 
-    return params_deriv
+    _1 = 1 / (sigma * np.sqrt(2 * np.pi))
+    _2 = -(1 / 2) * ((x - mu) / sigma) ** 2
+
+    return _1 * np.exp(_2)
 
 
-def gradient_descesnt(func, params, learning_rate=0.01, n_steps=1000):
-    params = np.array(params)
-    for i in range(n_steps):
-        params = params - learning_rate * np.array(get_parameter_derivative(params, func))
-    return params
+def double_normal_distribution(x: int, distance: int, sigma_1: float, mu_1: float, sigma_2: float, mu_2: float):
+    return (normal_distribution(x, sigma_1, mu_1) + normal_distribution(x + distance, sigma_2, mu_2)) / 2

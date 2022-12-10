@@ -1,5 +1,5 @@
 from src.mcmc import *
-from src.rbm import RBM
+from src.ansatz import RBM
 from src.utils import *
 from config_parser import get_config_file
 from scipy import optimize
