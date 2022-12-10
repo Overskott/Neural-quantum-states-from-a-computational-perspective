@@ -16,17 +16,19 @@ class Model(object):
         """Calculates the local energy of the RBM in state s"""
 
         h_size = self.hamiltonian.shape[0]
-        i = state
+        i = utils.binary_array_to_int(state)
         local_state = state
         local_energy = 0
+        p_i = self.rbm.amplitude(local_state)
 
         for j in range(h_size):
-            p_i = self.rbm.probability(local_state)
-            p_j = self.rbm.probability(utils.int_to_binary_array(j, state.size))
+
+            p_j = self.rbm.amplitude(utils.int_to_binary_array(j, state.size))
 
             h_ij = self.hamiltonian[i, j]
 
             local_energy += h_ij * p_j/p_i
+
 
         return local_energy
 
@@ -35,8 +37,8 @@ class Model(object):
         energy = 0
         for state in distribution:
             energy += self.local_energy(state)
-
-        return energy / len(distribution)
+        result = energy / len(distribution)
+        return result[0]
 
     def finite_difference(self, func, x, h=1e-5):
         #return (func(x + h) - func(x - h)) / (2 * h)

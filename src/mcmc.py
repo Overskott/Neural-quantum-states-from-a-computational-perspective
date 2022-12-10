@@ -80,7 +80,6 @@ class Walker(object):
 
             while flip_index in used_indexes:
                 flip_index = random.randint(0, self.current_state.size-1)
-                print("flip_index", flip_index)
 
             used_indexes.append(flip_index)
             self.next_state[flip_index] = 1 - self.next_state[flip_index]
