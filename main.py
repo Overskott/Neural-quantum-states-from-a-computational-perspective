@@ -1,6 +1,7 @@
 from src.mcmc import *
-from src.rbm import RBM
+from src.ansatz import RBM
 from src.utils import *
+from src.Model import Model
 from config_parser import get_config_file
 from scipy import optimize
 import matplotlib.pyplot as plt
@@ -11,12 +12,9 @@ if __name__ == '__main__':
 
     visible_layer_size = parameters['visible_size']  # Number of qubits
     hidden_layer_size = parameters['hidden_size']  # Number of hidden nodes
-    burn_in_steps = parameters['burn_in_steps']  # Number of steps before collecting points
-    walker_steps = parameters['walker_steps']  # Number of steps before walker termination
-    flips = parameters['hamming_distance']  # Hamming distance traveled between points
 
-    #seed = 42  # Seed for random number generator
-    #np.random.seed(seed)
+    seed = 44  # Seed for random number generator
+    np.random.seed(seed)
 
     b = random_complex_array(visible_layer_size)  # Visible layer bias
     c = random_complex_array(hidden_layer_size)  # Hidden layer bias
@@ -25,38 +23,41 @@ if __name__ == '__main__':
 
     walker = Walker()
     rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
+    model = Model(rbm, walker, H)  # Initializing model with RBM and Hamiltonian
 
-    walker.random_walk(rbm.probability, flips)
-    history = [utils.binary_array_to_int(state) for state in walker.get_history()]
-    print(history)
+    model.walker.estimate_distribution(model.rbm.probability)  # Estimate the distribution
+    history = [utils.binary_array_to_int(state) for state in model.walker.get_history()]
+
     # Printing results
-    print(f"Accept rate: {walker.average_acceptance()}")
+    print(f"Accept rate: {model.walker.average_acceptance()}")
     # print(f"Data: {walker.get_walk_results()}" )
     # Plotting histogram with results
 
-    result_list = []
 
-    #rbm = RBM(start_state, visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
-
-    for i in range(2 ** visible_layer_size):
-        result_list.append(rbm.probability(int_to_binary_array(i, visible_layer_size)))
 
     # Plotting histogram with results
+
+    print(f"Estimated energy: {model.estimate_energy()}")
+    print(f"Exact energy: {np.linalg.eigvalsh(H)[0]}")
+
+    model.gradient_descent()
+    print(f"Estimated energy: {model.estimate_energy()}")
+
+    states_list = [int_to_binary_array(i, visible_layer_size) for i in range(2 ** visible_layer_size)]
+    result_list = [model.rbm.probability(state) for state in states_list]
     norm = sum(result_list)
 
-    # print(100 * (result_list / norm))
-
-    # for i in range(2 ** bitstring_length):
-    #    print(rbm.local_energy(H, walker, i))
-
+    print(f"Expectation energy:  {model.estimate_energy(states_list)}")
     plt.figure(0)
-    plt.hist(history, density=True, bins=2**visible_layer_size, edgecolor="black", align='mid')
+    plt.hist(history, density=True, bins=range(2**visible_layer_size+1), edgecolor="black", align='left', rwidth = 0.8)
     plt.scatter([x for x in range(2**visible_layer_size)], (result_list / norm), color='red')
     plt.title("RBM Probability Distribution")
     plt.xlabel('State')
     plt.ylabel('Probalility')
     plt.legend(['Analytic Results', 'MCMC Results'])
 
+    # plt.figure(1)
+    # plt.plot([binary_array_to_int(i) for i in states_list], result_list)
     plt.show()
 
 

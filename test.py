@@ -1,5 +1,5 @@
 from src import utils
-from src.rbm import RBM
+from src.ansatz import RBM
 from src.utils import *
 
 low = -1
@@ -15,11 +15,11 @@ W = np.array([[-0.99002308, -0.98484, -0.99256982],
 
 rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)
 
-test_encoding = rbm.get_variable_array()
+test_encoding = rbm.get_parameters_as_array()
 
 # print(test_encoding)
 test_encoding = test_encoding * 10
-rbm.set_variables_from_array(test_encoding)
+rbm.set_parameters_from_array(test_encoding)
 
 # print(rbm.b)
 # print(rbm.c)
