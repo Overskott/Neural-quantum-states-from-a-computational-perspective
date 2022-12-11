@@ -73,7 +73,7 @@ def int_to_binary_array(value, length):
 
     binary = format(value, 'b')
 
-    bit_array = np.zeros((length, 1), dtype='i4')
+    bit_array = np.zeros(length, dtype='i4')
 
     for i, c in enumerate(binary[::-1]):
         bit_array[i] = int(c)

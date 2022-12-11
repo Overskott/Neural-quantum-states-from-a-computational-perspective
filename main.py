@@ -33,23 +33,21 @@ if __name__ == '__main__':
     # print(f"Data: {walker.get_walk_results()}" )
     # Plotting histogram with results
 
-    result_list = []
 
-    #rbm = RBM(start_state, visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
-
-    for i in range(2 ** visible_layer_size):
-        result_list.append(model.rbm.probability(int_to_binary_array(i, visible_layer_size)))
 
     # Plotting histogram with results
-    norm = sum(result_list)
 
-
-    print(f"Expectation energy:  {min(sum(result_list)/len(result_list))}")
     print(f"Estimated energy: {model.estimate_energy()}")
     print(f"Exact energy: {np.linalg.eigvalsh(H)[0]}")
 
+    model.gradient_descent()
+    print(f"Estimated energy: {model.estimate_energy()}")
 
+    states_list = [int_to_binary_array(i, visible_layer_size) for i in range(2 ** visible_layer_size)]
+    result_list = [model.rbm.probability(state) for state in states_list]
+    norm = sum(result_list)
 
+    print(f"Expectation energy:  {model.estimate_energy(states_list)}")
     plt.figure(0)
     plt.hist(history, density=True, bins=range(2**visible_layer_size+1), edgecolor="black", align='left', rwidth = 0.8)
     plt.scatter([x for x in range(2**visible_layer_size)], (result_list / norm), color='red')
@@ -58,6 +56,8 @@ if __name__ == '__main__':
     plt.ylabel('Probalility')
     plt.legend(['Analytic Results', 'MCMC Results'])
 
+    # plt.figure(1)
+    # plt.plot([binary_array_to_int(i) for i in states_list], result_list)
     plt.show()
 
 
