@@ -18,17 +18,17 @@ if __name__ == '__main__':
     #seed = 42  # Seed for random number generator
     #np.random.seed(seed)
 
-    b = random_array(visible_layer_size)  # Visible layer bias
-    c = random_array(hidden_layer_size)  # Hidden layer bias
-    W = random_matrix(visible_layer_size, hidden_layer_size)  # Visible - hidden weights
-    H = generate_positive_ground_state_hamiltonian(visible_layer_size)  # Hamiltonian
+    b = random_complex_array(visible_layer_size)  # Visible layer bias
+    c = random_complex_array(hidden_layer_size)  # Hidden layer bias
+    W = random_complex_matrix(visible_layer_size, hidden_layer_size)  # Visible - hidden weights
+    H = random_hamiltonian(2**visible_layer_size)  # Hamiltonian
 
     walker = Walker()
     rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
 
     walker.random_walk(rbm.probability, flips)
-    history = [state.get_value() for state in walker.get_walk_results()]
-
+    history = [utils.binary_array_to_int(state) for state in walker.get_history()]
+    print(history)
     # Printing results
     print(f"Accept rate: {walker.average_acceptance()}")
     # print(f"Data: {walker.get_walk_results()}" )
@@ -48,8 +48,6 @@ if __name__ == '__main__':
 
     # for i in range(2 ** bitstring_length):
     #    print(rbm.local_energy(H, walker, i))
-
-    print(rbm.get_rbm_energy(walker, H))
 
     plt.figure(0)
     plt.hist(history, density=True, bins=2**visible_layer_size, edgecolor="black", align='mid')

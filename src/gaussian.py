@@ -44,7 +44,7 @@ if __name__ == '__main__':
     walker = Walker()
 
     walker.random_walk(normal_dist)
-    history = [state.get_value() for state in walker.get_walk_results()]
+    history = [state.get_value() for state in walker.get_history()]
 
     plt.hist(history, bins=2**bitstring_length, density=True)
     plt.plot([normal_dist(i) for i in range(2**bitstring_length)])
