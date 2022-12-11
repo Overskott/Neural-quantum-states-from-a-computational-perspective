@@ -1,9 +1,13 @@
 {
   "parameters":{
-        "visible_size": 3,
-        "hidden_size": 10,
+        "visible_size": 2,
+        "hidden_size": 4,
         "burn_in_steps": 100,
         "walker_steps": 1000,
-        "hamming_distance": 1
+        "hamming_distance": 1,
+
+        "learning_rate": 100,
+        "gradient_descent_steps": 20
+
   }
 }
