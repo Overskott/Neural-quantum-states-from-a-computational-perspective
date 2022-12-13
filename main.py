@@ -3,7 +3,7 @@ from src.ansatz import RBM
 from src.utils import *
 from src.Model import Model
 from config_parser import get_config_file
-from scipy import optimize
+
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__':

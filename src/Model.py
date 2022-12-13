@@ -65,8 +65,8 @@ class Model(object):
         params[index] += h
 
         params[index] += h * 1j
-        im_plus = self.estimate_energy()
         self.rbm.set_parameters_from_array(params)
+        im_plus = self.estimate_energy()
 
         params[index] -= 2 * h * 1j
         self.rbm.set_parameters_from_array(params)
@@ -74,7 +74,7 @@ class Model(object):
 
         params[index] += h * 1j
 
-        return ((re_plus + im_plus) - (re_minus+im_minus)) / 2*h*1j
+        return -((re_plus + im_plus*1j) - (re_minus+im_minus*1j)) / 2*h
 
     def get_parameter_derivative(self):
         params = self.rbm.get_parameters_as_array()
