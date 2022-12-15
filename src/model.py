@@ -47,35 +47,35 @@ class Model(object):
             energy += self.local_energy(state)
         result = energy / len(distribution)
 
-        return result
+        return np.real(result)
 
     def finite_difference(self, index):
 
         params = self.rbm.get_parameters_as_array()
         h = 1/np.sqrt(self.data["walker_steps"])
-        delta = h+(h*1j)
 
-        params[index] += delta
+        params[index] += h
         self.rbm.set_parameters_from_array(params)
         re_plus = self.estimate_energy()
 
-        params[index] -= 2*delta
+        params[index] -= 2*h
         self.rbm.set_parameters_from_array(params)
         re_minus = self.estimate_energy()
 
-        params[index] += delta
-        #
-        # params[index] += h * 1j
-        # self.rbm.set_parameters_from_array(params)
-        # im_plus = self.estimate_energy()
-        #
-        # params[index] -= 2 * h * 1j
-        # self.rbm.set_parameters_from_array(params)
-        # im_minus = self.estimate_energy()
-        #
-        # params[index] += h * 1j
+        params[index] += h
 
-        return -((re_plus) - (re_minus)) / 2*delta
+        params[index] += h * 1j
+        self.rbm.set_parameters_from_array(params)
+        im_plus = self.estimate_energy()
+
+        params[index] -= 2 * h * 1j
+        self.rbm.set_parameters_from_array(params)
+        im_minus = self.estimate_energy()
+
+        params[index] += h * 1j
+
+        return (re_plus - re_minus) / (2*h) + (im_plus - im_minus) / (2*h*1j)
+
 
     def get_parameter_derivative(self):
         params = self.rbm.get_parameters_as_array()
@@ -93,7 +93,8 @@ class Model(object):
 
         for i in range(n_steps):
             print(f"Gradient descent step {i}, energy: {self.estimate_energy()}")
-            params = params - learning_rate * np.array(self.get_parameter_derivative())
+            params = params + learning_rate * np.array(self.get_parameter_derivative())
             self.rbm.set_parameters_from_array(params)
 
 
+class adam(object):

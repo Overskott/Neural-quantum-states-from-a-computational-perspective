@@ -44,7 +44,7 @@ if __name__ == '__main__':
     print(f"Estimated energy: {model.estimate_energy()}")
 
     states_list = [int_to_binary_array(i, visible_layer_size) for i in range(2 ** visible_layer_size)]
-    result_list = [model.rbm.probability(state) for state in states_list]
+    result_list = np.asarray([model.rbm.probability(state) for state in states_list])
     norm = sum(result_list)
 
     history = [utils.binary_array_to_int(state) for state in model.walker.get_history()]

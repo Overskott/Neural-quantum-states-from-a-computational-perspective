@@ -62,7 +62,6 @@ class RBM(object):
     def set_weights(self, W):
         self.W = W
 
-
     def probability(self, state: np.ndarray) -> float:
         """ Calculates the probability of finding the RBM in state s """
 
@@ -80,7 +79,8 @@ class RBM(object):
 
         amp = product * bias
 
-        return np.sqrt(amp)
+        return amp
+
 
 
 
