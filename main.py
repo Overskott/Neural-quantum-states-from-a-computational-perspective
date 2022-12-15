@@ -1,7 +1,7 @@
 from src.mcmc import *
 from src.ansatz import RBM
 from src.utils import *
-from src.Model import Model
+from src.model import Model
 from config_parser import get_config_file
 
 import matplotlib.pyplot as plt
@@ -26,7 +26,7 @@ if __name__ == '__main__':
     model = Model(rbm, walker, H)  # Initializing model with RBM and Hamiltonian
 
     model.walker.estimate_distribution(model.rbm.probability)  # Estimate the distribution
-    history = [utils.binary_array_to_int(state) for state in model.walker.get_history()]
+
 
     # Printing results
     print(f"Accept rate: {model.walker.average_acceptance()}")
@@ -47,7 +47,9 @@ if __name__ == '__main__':
     result_list = [model.rbm.probability(state) for state in states_list]
     norm = sum(result_list)
 
-    print(f"Expectation energy:  {model.estimate_energy(states_list)}")
+    history = [utils.binary_array_to_int(state) for state in model.walker.get_history()]
+
+    #print(f"Expectation energy:  {model.estimate_energy(states_list)}")
     plt.figure(0)
     plt.hist(history, density=True, bins=range(2**visible_layer_size+1), edgecolor="black", align='left', rwidth = 0.8)
     plt.scatter([x for x in range(2**visible_layer_size)], (result_list / norm), color='red')

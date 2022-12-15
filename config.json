@@ -6,8 +6,8 @@
         "walker_steps": 1000,
         "hamming_distance": 1,
 
-        "learning_rate": 100000,
-        "gradient_descent_steps": 20
+        "learning_rate": 1,
+        "gradient_descent_steps": 100
 
   }
 }
