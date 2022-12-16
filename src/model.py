@@ -98,3 +98,19 @@ class Model(object):
 
 
 class adam(object):
+
+        def __init__(self, params: np.ndarray, beta1: float = 0.9, beta2: float = 0.9):
+            self.params = params
+            self.beta1 = beta1
+            self.beta2 = beta2
+            self.epsilon = 1e-8
+            self.t = 0
+
+            self.m = np.zeros(len(params))
+            self.v = np.zeros(len(params))
+
+        def adam_step(self):
+            self.t += 1
+            self.m = self.beta1 * self.m + (1 - self.beta1) * self.params
+            self.v = self.beta2 * self.v + (1 - self.beta2) * np.array(self.params) ** 2
+
