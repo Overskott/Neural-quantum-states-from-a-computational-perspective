@@ -1,7 +1,9 @@
+import numpy as np
+
 from src.mcmc import *
 from src.ansatz import RBM
 from src.utils import *
-from src.model import Model
+from src.model import Model, Adam
 from config_parser import get_config_file
 
 import matplotlib.pyplot as plt
@@ -19,7 +21,10 @@ if __name__ == '__main__':
     b = random_complex_array(visible_layer_size)  # Visible layer bias
     c = random_complex_array(hidden_layer_size)  # Hidden layer bias
     W = random_complex_matrix(visible_layer_size, hidden_layer_size)  # Visible - hidden weights
-    H = random_hamiltonian(2**visible_layer_size)  # Hamiltonian
+    #H = random_hamiltonian(2**visible_layer_size)  # Hamiltonian
+
+    #H =np.array([[-2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 2]])
+    H = np.diag([-3, 1, -1, 1, 2, 3, -4, 5])  # Hamiltonian
 
     walker = Walker()
     rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
@@ -38,15 +43,17 @@ if __name__ == '__main__':
     # Plotting histogram with results
 
     print(f"Estimated energy: {model.estimate_energy()}")
-    print(f"Exact energy: {np.linalg.eigvalsh(H)[0]}")
+    print(f"Exact energy: {np.linalg.eigvalsh(H)}")
 
     model.gradient_descent()
+
     print(f"Estimated energy: {model.estimate_energy()}")
 
     states_list = [int_to_binary_array(i, visible_layer_size) for i in range(2 ** visible_layer_size)]
     result_list = np.asarray([model.rbm.probability(state) for state in states_list])
     norm = sum(result_list)
 
+    model.walker.estimate_distribution(model.rbm.probability)
     history = [utils.binary_array_to_int(state) for state in model.walker.get_history()]
 
     #print(f"Expectation energy:  {model.estimate_energy(states_list)}")

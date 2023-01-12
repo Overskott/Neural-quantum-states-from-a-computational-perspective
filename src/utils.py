@@ -32,10 +32,10 @@ def random_symmetric_matrix(size, mu=-1, sigma=1):
     return np.tril(a) + np.tril(a, -1).T
 
 
-def random_hamiltonian(n_qubits: int):
+def random_hamiltonian(size: int):
     """Generate a random hamiltonian matrix of size n_qubits x n_qubits"""
-    re = np.random.normal(0, 1, (n_qubits, n_qubits))
-    im = np.random.normal(0, 1, (n_qubits, n_qubits)) * 1j
+    re = np.random.normal(0, 1, (size, size))
+    im = np.random.normal(0, 1, (size, size)) * 1j
     ginibre = re + im
 
     hamiltonian = ginibre + ginibre.T.conj()
