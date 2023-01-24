@@ -24,7 +24,7 @@ if __name__ == '__main__':
     #H = random_hamiltonian(2**visible_layer_size)  # Hamiltonian
 
     #H =np.array([[-2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 2]])
-    H = np.diag([-3, 1, -1, 1, 2, 3, -4, 5])  # Hamiltonian
+    H = np.diag([-2, 0, 2, 4])  # Hamiltonian
 
     walker = Walker()
     rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
@@ -45,7 +45,27 @@ if __name__ == '__main__':
     print(f"Estimated energy: {model.estimate_energy()}")
     print(f"Exact energy: {np.linalg.eigvalsh(H)}")
 
-    model.gradient_descent()
+    model.gradient_descent_2()
+
+    # seed = 44  # Seed for random number generator
+    # np.random.seed(seed)
+    #
+    # b = random_complex_array(visible_layer_size)  # Visible layer bias
+    # c = random_complex_array(hidden_layer_size)  # Hidden layer bias
+    # W = random_complex_matrix(visible_layer_size, hidden_layer_size)  # Visible - hidden weights
+    # # H = random_hamiltonian(2**visible_layer_size)  # Hamiltonian
+    #
+    # H = np.array([[-2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 2]])
+    # # H = np.diag([-3, 1, -1, 1, 2, 3, -4, 5])  # Hamiltonian
+    #
+    # walker = Walker()
+    # rbm = RBM(visible_bias=b, hidden_bias=c,
+    #           weights=W)  # Initializing RBM currently with random configuration and parameters
+    # model = Model(rbm, walker, H)  # Initializing model with RBM and Hamiltonian
+    #
+    # model.walker.estimate_distribution(model.rbm.probability)  # Estimate the distribution
+    #
+    # model.gradient_descent_1(model.rbm.get_parameters_as_array())
 
     print(f"Estimated energy: {model.estimate_energy()}")
 

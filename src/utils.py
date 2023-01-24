@@ -72,7 +72,6 @@ def generate_positive_ground_state_hamiltonian(n_qubits: int):
 def int_to_binary_array(value, length):
 
     binary = format(value, 'b')
-
     bit_array = np.zeros(length, dtype='i4')
 
     for i, c in enumerate(binary[::-1]):

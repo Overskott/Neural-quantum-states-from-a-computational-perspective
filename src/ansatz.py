@@ -11,6 +11,7 @@ class RBM(object):
         data = get_config_file()['parameters']  # Load the config file
 
         self.visible_size = data['visible_size']  # Get number of visible nodes from the config file
+        self.hidden_size = data['hidden_size']  # Get number of hidden nodes from the config file
         self.state = utils.random_complex_array(self.visible_size)  # Set the initial state to a random complex array
 
         if visible_bias is None:
@@ -52,6 +53,7 @@ class RBM(object):
         self.b = x_0[:len(self.b)]
         self.c = x_0[len(self.b):len(self.b) + len(self.c)]
         self.W = x_0[len(self.b)+len(self.c):].reshape(dim_0, dim_1)
+
 
     def set_visible_bias(self, b):
         self.b = b
