@@ -25,17 +25,9 @@ walker = Walker()
 rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
 model = Model(rbm, walker, H)  # Initializing model with RBM and Hamiltonian
 
-model.walker.estimate_distribution(model.rbm.probability)  # Estimate the distribution
 
-print(f"Accept rate: {model.walker.average_acceptance()}")
-# print(f"Data: {walker.get_walk_results()}" )
-# Plotting histogram with results
+print(rbm.W)
 
-print(f"Estimated energy: {model.estimate_energy()}")
-print(f"Exact energy: {np.linalg.eigvalsh(H)}")
+rbm.set_parameter_from_value(9, 1)
 
-model.gradient_descent_2()
-
-print(f"Estimated energy: {model.estimate_energy()}")
-
-# Plotting histogram with results
+print(rbm.W)

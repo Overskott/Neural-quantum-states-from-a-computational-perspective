@@ -1,3 +1,4 @@
+import copy
 from typing import List
 
 from config_parser import get_config_file
@@ -38,7 +39,7 @@ class Model(object):
 
     def estimate_energy(self, dist: List[np.ndarray] = None) -> float:
         if dist is None:
-            distribution = self.get_distribution()
+            distribution = self.get_mcmc_states()
         else:
             distribution = dist
         energy = 0
@@ -49,22 +50,94 @@ class Model(object):
 
         return np.real(result)
 
-    def exact_energy(self) -> float:
-        # Calculates the exact energy of the model by sampling over all possible states
+    def get_all_states(self):
+        return np.asarray([utils.int_to_binary_array(i, self.rbm.visible_size)
+                           for i in range(2 ** self.rbm.visible_size)])
 
-        states_list = [utils.int_to_binary_array(i, self.rbm.visible_size) for i in
-                       range(2 ** self.rbm.visible_size)]
-        local_energy_list = [self.local_energy(state) for state in states_list] # Can be computed only once
+    def get_mcmc_states(self):
+        self.walker.estimate_distribution(self.rbm.probability)
+        return self.walker.get_history()
 
-        result_list = np.asarray([self.rbm.probability(state) for state in states_list])
+    def get_prob_distribution(self):
+        result_list = np.asarray([self.rbm.probability(state) for state in self.get_all_states()])
         norm = sum(result_list)
 
-        probability_list = result_list / norm
+        return result_list / norm
 
-        return sum(local_energy_list * probability_list)
+    def exact_energy(self) -> float:
+        # Calculates the exact energy of the model by sampling over all possible states
+        local_energy_list = [self.local_energy(state) for state in self.get_all_states()]  # Can be computed only once
+        probability_list = self.get_prob_distribution()
+        #print(f"Probability list: {probability_list}")
+        #print(f"Local energy list: {local_energy_list}")
+        #print(f"product: {probability_list * local_energy_list}")
+        # print(f"sum: {sum(probability_list * local_energy_list)}")
+        return sum(probability_list * local_energy_list)
+
+    def finite_difference_step(self, index, param, h=1e-2):
+
+        function = self.exact_energy
+        reset_value = param
+
+        param += h
+        self.rbm.set_parameter_from_value(index, param)
+        re_plus = function()
+
+        param -= 2*h
+        self.rbm.set_parameter_from_value(index, param)
+        re_minus = function()
+
+        param += h
+
+        param += h * 1j
+        self.rbm.set_parameter_from_value(index, param)
+        im_plus = function()
+
+        param -= 2 * h * 1j
+        self.rbm.set_parameter_from_value(index, param)
+        im_minus = function()
+
+        self.rbm.set_parameter_from_value(index, reset_value)
+
+        return (re_plus - re_minus) / (2*h) + (im_plus - im_minus) / (2*h*1j)
+
+    def finite_difference(self, params):
+        gradients = []
+
+        for i, param in enumerate(params):
+            gradients.append(self.finite_difference_step(i, param))
+
+        return np.asarray(gradients, dtype=complex)
+
+    def gradient_descent(self):
+        learning_rate = self.data['learning_rate']
+        n_steps = self.data['gradient_descent_steps']
+        params = copy.deepcopy(self.rbm.get_parameters_as_array())
+        adam = Adam()
+
+        energy_landscape = []
+
+        for i in range(n_steps):
+
+            energy = self.exact_energy()
+            print(f"Gradient descent step {i + 1}, energy: {energy}")
+            energy_landscape.append(energy)
+
+            try:
+                adam_grads = adam(self.finite_difference(params))
+                params = params - learning_rate * np.array(adam_grads)
+                self.rbm.set_parameters_from_array(adam_grads)
+
+            except KeyboardInterrupt:
+                print("Gradient descent interrupted")
+                break
+
+        return energy_landscape
 
     def analytical_params_grad(self, distribution: List[np.ndarray]) -> np.ndarray:
+
         omega_bar = self.omega_bar(distribution)
+
         grads = np.zeros(len(self.rbm.get_parameters_as_array()))
 
         for j in range(len(self.rbm.get_parameters_as_array())):
@@ -73,7 +146,6 @@ class Model(object):
                 g_j += np.conjugate(self.local_energy(state)) * (self.omega(state) - omega_bar) # TODO do we need complex conjugate here?
 
             grads = 2 * np.real(g_j)/len(distribution)
-
 
         return grads
 
@@ -145,90 +217,6 @@ class Model(object):
 
         return weight_gradients
 
-    def get_prob_distribution(self):
-        states_list = [utils.int_to_binary_array(i, self.rbm.visible_size) for i in
-                       range(2 ** self.rbm.visible_size)]
-        result_list = np.asarray([self.rbm.probability(state) for state in states_list])
-        norm = sum(result_list)
-
-        return result_list / norm
-
-    def get_distribution(self):
-        self.walker.estimate_distribution(self.rbm.probability)
-        return self.walker.get_history()
-
-    def get_exact_distribution(self):
-        states_list = [utils.int_to_binary_array(i, self.rbm.visible_size) for i in
-                       range(2 ** self.rbm.visible_size)]
-        result_list = np.asarray([self.rbm.probability(state) for state in states_list])
-        return result_list
-
-
-    def finite_difference(self, index):
-
-        params = self.rbm.get_parameters_as_array()
-        h = 1e-3#np.sqrt(self.data["walker_steps"])
-
-        params[index] += h
-        self.rbm.set_parameters_from_array(params)
-        re_plus = self.exact_energy()
-        #re_plus = self.estimate_energy()
-
-        params[index] -= 2*h
-        self.rbm.set_parameters_from_array(params)
-        re_minus = self.exact_energy()
-        #re_minus = self.estimate_energy()
-        params[index] += h
-
-        params[index] += h * 1j
-        self.rbm.set_parameters_from_array(params)
-        im_plus = self.exact_energy()
-        #im_plus = self.estimate_energy()
-
-        params[index] -= 2 * h * 1j
-        self.rbm.set_parameters_from_array(params)
-        im_minus = self.exact_energy()
-        #im_minus = self.estimate_energy()
-
-        params[index] += h * 1j
-
-        return (re_plus - re_minus) / (2*h) + (im_plus - im_minus) / (2*h*1j)
-
-    def get_parameter_derivative(self):
-        params = self.rbm.get_parameters_as_array()
-        params_deriv = []
-
-        for i in range(len(params)):
-            params_deriv.append(self.finite_difference(i))
-
-        return params_deriv
-
-    def gradient_descent_1(self):
-        learning_rate = self.data['learning_rate']
-        n_steps = self.data['gradient_descent_steps']
-        params = self.rbm.get_parameters_as_array()
-        adam = Adam()
-
-        for i in range(n_steps):
-            try:
-                print(f"Gradient descent step {i}, energy: {self.exact_energy()}")
-                #print(f"Largest param value: {np.max(self.rbm.get_parameters_as_array())}")
-
-
-
-                params = params - learning_rate * np.array(self.get_parameter_derivative())
-                print(f"Params 1: {params}")
-
-                adam.set_grads(params)
-                adam_params = adam.adam_step()
-                # print(f"Adam optimized grads: {adam_params}")
-
-                self.rbm.set_parameters_from_array(adam_params)
-
-            except KeyboardInterrupt:
-                print("Gradient descent interrupted")
-                break
-
     def gradient_descent_2(self):
         learning_rate = self.data['learning_rate']
         n_steps = self.data['gradient_descent_steps']
@@ -242,7 +230,7 @@ class Model(object):
                 params = self.rbm.get_parameters_as_array()
                 #print(f"Params: {params}")
                 #print(f"abs grads: {self.analytical_params_grad(dist)}")
-                dist = self.get_distribution()
+                dist = self.get_mcmc_states()
 
                 adam_grads = adam(self.analytical_params_grad(dist))
                 #adam.set_grads(self.analytical_params_grad(dist))
@@ -257,6 +245,7 @@ class Model(object):
             except KeyboardInterrupt:
                 print("Gradient descent interrupted")
                 break
+
 
 class Adam(object):
 
