@@ -54,6 +54,25 @@ class RBM(object):
         self.c = x_0[len(self.b):len(self.b) + len(self.c)]
         self.W = x_0[len(self.b)+len(self.c):].reshape(dim_0, dim_1)
 
+    def set_parameter_from_value(self, index, value):
+        """ Sets the parameter at index to value """
+
+        v_size = self.visible_size
+        h_size = self.hidden_size
+
+        if index < v_size:
+            self.b[index] = value
+
+        elif index < v_size + h_size:
+            self.c[index - v_size] = value
+
+        else:
+            w_index = index - v_size - h_size
+
+            row = w_index // h_size
+            column = w_index % h_size
+
+            self.W[row, column] = value
 
     def set_visible_bias(self, b):
         self.b = b
