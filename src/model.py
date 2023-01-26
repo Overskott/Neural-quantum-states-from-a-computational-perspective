@@ -113,7 +113,7 @@ class Model(object):
         adam = Adam()
 
         if gradient_method == 'analytical':
-            gradient = self.analytical_params_grad
+            gradient = self.exact_analytical_grads
         elif gradient_method == 'finite_difference':
             gradient = self.finite_difference
 
@@ -134,6 +134,19 @@ class Model(object):
                 break
 
         return energy_landscape
+
+    def exact_analytical_grads(self, params):
+        distribution = self.get_all_states()
+        omega_bar = self.omega_bar(distribution)
+
+        for j in range(len(params)):
+            g_j = 0
+            for state in distribution:
+                g_j += np.conjugate(self.exact_energy()) * (self.omega(state) - omega_bar)
+
+            grads = 2 * np.real(g_j)
+
+        return grads
 
     def analytical_params_grad(self, params) -> np.ndarray:
         distribution = self.get_mcmc_states()
@@ -219,7 +232,7 @@ class Model(object):
         _2 = np.exp(_1)
         hidden_bias_grads = -(_2 / (1 + _2))
 
-        return hidden_bias_grads
+        return np.asarray(hidden_bias_grads, dtype=complex)
 
     def _weights_grads(self, state) -> np.ndarray:
 
@@ -237,7 +250,7 @@ class Model(object):
         #
         #         weight_gradients[j, i] = -1 * state[j] * _2
 
-        return weight_gradients
+        return np.asarray(weight_gradients, dtype=complex)
 
 
 class Adam(object):
