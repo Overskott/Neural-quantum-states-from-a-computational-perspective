@@ -1,3 +1,4 @@
+import copy
 from typing import List
 
 from config_parser import get_config_file
@@ -21,6 +22,7 @@ class Model(object):
         """Calculates the local energy of the RBM in state s"""
 
         h_size = self.hamiltonian.shape[0]
+
         i = utils.binary_array_to_int(state)
         local_state = state
         local_energy = 0
@@ -37,99 +39,222 @@ class Model(object):
 
     def estimate_energy(self, dist: List[np.ndarray] = None) -> float:
         if dist is None:
-            self.walker.estimate_distribution(self.rbm.probability)
-            distribution = self.walker.get_history()
+            distribution = self.get_mcmc_states()
         else:
             distribution = dist
-
         energy = 0
 
         for state in distribution:
-
             energy += self.local_energy(state)
         result = energy / len(distribution)
 
         return np.real(result)
 
-    def exact_energy(self):
-        states_list = [utils.int_to_binary_array(i, self.rbm.visible_size) for i in
-                       range(2 ** self.rbm.visible_size)]
-        local_energy_list = [self.local_energy(state) for state in states_list] # Can be computed only once
+    def get_all_states(self):
+        return np.asarray([utils.int_to_binary_array(i, self.rbm.visible_size)
+                           for i in range(2 ** self.rbm.visible_size)])
 
-        result_list = np.asarray([self.rbm.probability(state) for state in states_list])
-        norm = sum(result_list)
+    def get_mcmc_states(self):
+        self.walker.estimate_distribution(self.rbm.probability)
+        return np.asarray(self.walker.get_history())
 
-        probability_list = result_list / norm
-
-        return sum(local_energy_list * probability_list)
-
-    def get_distribution(self):
-        states_list = [utils.int_to_binary_array(i, self.rbm.visible_size) for i in
-                       range(2 ** self.rbm.visible_size)]
-        result_list = np.asarray([self.rbm.probability(state) for state in states_list])
+    def get_prob_distribution(self):
+        result_list = np.asarray([self.rbm.probability(state) for state in self.get_all_states()])
         norm = sum(result_list)
 
         return result_list / norm
 
-    def finite_difference(self, index):
+    def exact_energy(self) -> float:
+        # Calculates the exact energy of the model by sampling over all possible states
+        local_energy_list = [self.local_energy(state) for state in self.get_all_states()]  # Can be computed only once
+        probability_list = self.get_prob_distribution()
 
-        params = self.rbm.get_parameters_as_array()
-        h = 1e-3#np.sqrt(self.data["walker_steps"])
+        return sum(probability_list * local_energy_list)
 
-        params[index] += h
-        self.rbm.set_parameters_from_array(params)
-        re_plus = self.exact_energy()
-        #re_plus = self.estimate_energy()
+    def finite_difference_step(self, index, param, h=1e-2):
 
-        params[index] -= 2*h
-        self.rbm.set_parameters_from_array(params)
-        re_minus = self.exact_energy()
-        #re_minus = self.estimate_energy()
-        params[index] += h
+        function = self.exact_energy
+        reset_value = param
 
-        params[index] += h * 1j
-        self.rbm.set_parameters_from_array(params)
-        im_plus = self.exact_energy()
-        #im_plus = self.estimate_energy()
+        param += h
+        self.rbm.set_parameter_from_value(index, param)
+        re_plus = function()
 
-        params[index] -= 2 * h * 1j
-        self.rbm.set_parameters_from_array(params)
-        im_minus = self.exact_energy()
-        #im_minus = self.estimate_energy()
+        param -= 2*h
+        self.rbm.set_parameter_from_value(index, param)
+        re_minus = function()
 
-        params[index] += h * 1j
+        param += h
+
+        param += h * 1j
+        self.rbm.set_parameter_from_value(index, param)
+        im_plus = function()
+
+        param -= 2 * h * 1j
+        self.rbm.set_parameter_from_value(index, param)
+        im_minus = function()
+
+        self.rbm.set_parameter_from_value(index, reset_value)
 
         return (re_plus - re_minus) / (2*h) + (im_plus - im_minus) / (2*h*1j)
 
-    def get_parameter_derivative(self):
-        params = self.rbm.get_parameters_as_array()
-        params_deriv = []
+    def finite_difference(self, params):
+        gradients = []
 
-        for i in range(len(params)):
-            params_deriv.append(self.finite_difference(i))
+        for i, param in enumerate(params):
+            gradients.append(self.finite_difference_step(i, param))
 
-        return params_deriv
+        return np.asarray(gradients, dtype=complex)
 
-    def gradient_descent(self):
+    def gradient_descent(self, gradient_method='analytical'):
         learning_rate = self.data['learning_rate']
         n_steps = self.data['gradient_descent_steps']
-        params = self.rbm.get_parameters_as_array()
+        params = copy.deepcopy(self.rbm.get_parameters_as_array())
         adam = Adam()
+
+        if gradient_method == 'analytical':
+            gradient = self.exact_analytical_grads
+        elif gradient_method == 'finite_difference':
+            gradient = self.finite_difference
+
+        energy_landscape = []
 
         for i in range(n_steps):
             try:
-                print(f"Gradient descent step {i}, energy: {self.exact_energy()}")
-                print(f"Largest param value: {np.max(self.rbm.get_parameters_as_array())}")
-                params = params - learning_rate * np.array(self.get_parameter_derivative())
-                adam.set_grads(params)
-                adam_params = adam.adam_step()
-                # print(f"Adam optimized grads: {adam_params}")
+                energy = self.exact_energy()
+                print(f"Gradient descent step {i + 1}, energy: {energy}")
+                energy_landscape.append(energy)
 
-                self.rbm.set_parameters_from_array(adam_params)
+                adam_grads = adam(gradient(params))
+                params = params - learning_rate * np.array(adam_grads)
+                self.rbm.set_parameters_from_array(params)
 
             except KeyboardInterrupt:
                 print("Gradient descent interrupted")
                 break
+
+        return energy_landscape
+
+    def exact_analytical_grads(self, params):
+        distribution = self.get_all_states()
+        g_j = np.zeros(len(params), dtype=complex)
+        omega_j = []
+
+        for i, state in enumerate(distribution):
+            omega_j.append(self.omega(state))
+
+        omega_j = np.transpose(np.asarray(omega_j))
+
+        for j in range(len(params)):
+            g_j[j] = min(np.linalg.eigvalsh(self.hamiltonian * np.diag(omega_j[j]))) \
+                     - self.exact_energy() * min(np.linalg.eigvalsh(np.diag(omega_j[j])))
+        grads = 2 * np.real(g_j)
+
+        return grads
+
+    def analytical_grads(self, params) -> np.ndarray:
+        distribution = self.get_mcmc_states()
+        omega_bar = self.omega_bar(distribution)
+
+        grads = np.zeros(len(params))
+
+        for j in range(len(params)):
+            g_j = 0
+            for state in distribution:
+                g_j += np.conjugate(self.local_energy(state)) * (self.omega(state) - omega_bar)
+
+            grads = 2 * np.real(g_j)/len(distribution)
+
+        return grads
+
+    def omega_bar(self, dist: np.ndarray = None) -> np.ndarray:
+        """
+        Calculates the average of the omega function over the distribution
+        :param dist:
+        :return: ndarray with the average of the omega function for each parameter
+
+        """
+
+        if dist is None:
+            self.walker.estimate_distribution(self.rbm.probability)
+            distribution = self.walker.get_history()
+        else:
+            distribution = dist
+
+        omega_bar_j = np.zeros(len(self.rbm.get_parameters_as_array()))
+        omega_j = 0
+
+        for j in range(len(self.rbm.get_parameters_as_array())):
+            for state in distribution:
+                omega_j += self.omega(state)
+
+            omega_bar_j = omega_j / len(distribution)
+
+        return omega_bar_j
+
+    def omega(self, state) -> np.ndarray:
+
+        return 1/self.rbm.amplitude(state) * self.param_grads(state)
+
+    def param_grads(self, state: np.ndarray) -> np.ndarray:
+        """
+        Calculates the analytical gradient of the parameters with respect to the energy of the state.
+
+            Args:
+                state (np.ndarray): The state of the RBM to calculate the gradient for.
+
+            Returns:
+                np.ndarray: The gradient of the parameters with respect to the energy of the state.
+        """
+        b_grad = self._visible_bias_grads(state)
+        c_grad = self._hidden_bias_grads(state)
+        w_grad = self._weights_grads(state)
+
+        return np.concatenate((b_grad, c_grad, w_grad.flatten()))
+
+    def _visible_bias_grads(self, state) -> np.ndarray:
+        """
+        Calculates the gradient of the visible bias with respect to the energy of the state.
+
+            Args:
+                state (np.ndarray): The state of the RBM to calculate the visible bias gradient for.
+
+            Returns:
+                np.ndarray: The gradient of the visible bias with respect to the energy of the state.
+        """
+        return -1 * state
+
+    def _hidden_bias_grads(self, state) -> np.ndarray:
+        # hidden_bias_grads = np.zeros(self.rbm.hidden_size, dtype=complex)
+        #
+        # for j in range(self.rbm.hidden_size):
+        #     _1 = -self.rbm.W[:, j] @ state - self.rbm.c[j]
+        #     _2 = np.exp(_1)
+        #     hidden_bias_grads[j] = -(_2 / (1 + _2))
+
+        _1 = state @ -(self.rbm.W + self.rbm.c)
+        _2 = np.exp(_1)
+        hidden_bias_grads = -(_2 / (1 + _2))
+
+        return np.asarray(hidden_bias_grads, dtype=complex)
+
+    def _weights_grads(self, state) -> np.ndarray:
+
+        # weight_gradients = np.zeros((self.rbm.visible_size, self.rbm.hidden_size), dtype=complex)
+
+        _1 = state @ -(self.rbm.W + self.rbm.c)
+        _2 = np.exp(_1)/(1 + np.exp(_1))
+        weight_gradients = -1 * _2.reshape(-1, 1) @ state.reshape(1, -1)
+
+        # for i in range(self.rbm.hidden_size):
+        #     _1 = (-self.rbm.W[:, i] @ state) - self.rbm.c[i]
+        #     _2 = np.exp(_1)/(1 + np.exp(_1))
+        #
+        #     for j in range(self.rbm.visible_size):
+        #
+        #         weight_gradients[j, i] = -1 * state[j] * _2
+
+        return np.asarray(weight_gradients, dtype=complex)
 
 
 class Adam(object):
