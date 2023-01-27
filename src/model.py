@@ -137,18 +137,22 @@ class Model(object):
 
     def exact_analytical_grads(self, params):
         distribution = self.get_all_states()
-        omega_bar = self.omega_bar(distribution)
+        g_j = np.zeros(len(params), dtype=complex)
+        omega_j = []
+
+        for i, state in enumerate(distribution):
+            omega_j.append(self.omega(state))
+
+        omega_j = np.transpose(np.asarray(omega_j))
 
         for j in range(len(params)):
-            g_j = 0
-            for state in distribution:
-                g_j += np.conjugate(self.exact_energy()) * (self.omega(state) - omega_bar)
-
-            grads = 2 * np.real(g_j)
+            g_j[j] = min(np.linalg.eigvalsh(self.hamiltonian * np.diag(omega_j[j]))) \
+                     - self.exact_energy() * min(np.linalg.eigvalsh(np.diag(omega_j[j])))
+        grads = 2 * np.real(g_j)
 
         return grads
 
-    def analytical_params_grad(self, params) -> np.ndarray:
+    def analytical_grads(self, params) -> np.ndarray:
         distribution = self.get_mcmc_states()
         omega_bar = self.omega_bar(distribution)
 
