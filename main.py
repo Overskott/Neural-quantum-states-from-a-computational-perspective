@@ -22,7 +22,7 @@ if __name__ == '__main__':
     c = random_complex_array(hidden_layer_size)  # Hidden layer bias
     W = random_complex_matrix(visible_layer_size, hidden_layer_size)  # Visible - hidden weights
     #H = random_hamiltonian(2**visible_layer_size)  # Hamiltonian
-    H = np.diag([-2, 0, -0, 2])  # Hamiltonian
+    H = np.diag([-2, 0, -0, -7])  # Hamiltonian
     #H = np.diag([-2, 0, 1, -8, 0, 0, -5, -2])  # Hamiltonian
 
     walker = Walker()
@@ -40,8 +40,8 @@ if __name__ == '__main__':
 
     analytic_plot_list = model_copy.gradient_descent('analytical')
 
-    plt.plot(fd_plot_list, label='Finite Difference')
-    plt.plot(analytic_plot_list, label='Analytical')
+    plt.plot(np.real(fd_plot_list), label='Finite Difference')
+    plt.plot(np.real(analytic_plot_list), label='Analytical')
     plt.axhline(y=min(np.linalg.eigvalsh(H)), color='red', linestyle='--', label='Ground State')
     plt.legend()
     plt.show()

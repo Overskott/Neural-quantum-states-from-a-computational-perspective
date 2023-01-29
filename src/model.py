@@ -109,8 +109,14 @@ class Model(object):
     def gradient_descent(self, gradient_method='analytical'):
         learning_rate = self.data['learning_rate']
         n_steps = self.data['gradient_descent_steps']
+        termination_condition = self.data['termination_threshold']
+        adam_optimization = self.data['adam_optimizer']
+        mcmc_dist = self.data['mcmc_distribution']
+
         params = copy.deepcopy(self.rbm.get_parameters_as_array())
-        adam = Adam()
+
+        if adam_optimization:
+            adam = Adam()
 
         if gradient_method == 'analytical':
             gradient = self.exact_analytical_grads
@@ -118,19 +124,31 @@ class Model(object):
             gradient = self.finite_difference
 
         energy_landscape = []
+        a = 0
 
         for i in range(n_steps):
             try:
+                b = a
+
                 energy = self.exact_energy()
+                a = energy
                 print(f"Gradient descent step {i + 1}, energy: {energy}")
                 energy_landscape.append(energy)
 
-                adam_grads = adam(gradient(params))
-                params = params - learning_rate * np.array(adam_grads)
+                if adam_optimization:
+                    new_grads = adam(gradient(params))
+                else:
+                    new_grads = gradient(params)
+                    
+                params = params - learning_rate * np.array(new_grads)
                 self.rbm.set_parameters_from_array(params)
 
             except KeyboardInterrupt:
                 print("Gradient descent interrupted")
+                break
+
+            if termination_condition > abs(b-a):
+                print("Termination condition reached")
                 break
 
         return energy_landscape
