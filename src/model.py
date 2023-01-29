@@ -71,9 +71,12 @@ class Model(object):
 
         return sum(probability_list * local_energy_list)
 
-    def finite_difference_step(self, index, param, h=1e-2):
+    def finite_difference_step(self, index, param, exact_dist, h=1e-2):
 
-        function = self.exact_energy
+        if not exact_dist:
+            function = self.estimate_energy
+        else:
+            function = self.exact_energy
         reset_value = param
 
         param += h
@@ -98,44 +101,98 @@ class Model(object):
 
         return (re_plus - re_minus) / (2*h) + (im_plus - im_minus) / (2*h*1j)
 
-    def finite_difference(self, params):
+    def finite_difference(self, params, exact_dist):
         gradients = []
 
         for i, param in enumerate(params):
-            gradients.append(self.finite_difference_step(i, param))
+            gradients.append(self.finite_difference_step(i, param, exact_dist))
 
         return np.asarray(gradients, dtype=complex)
 
-    def gradient_descent(self, gradient_method='analytical'):
-        learning_rate = self.data['learning_rate']
-        n_steps = self.data['gradient_descent_steps']
-        params = copy.deepcopy(self.rbm.get_parameters_as_array())
-        adam = Adam()
+    def gradient_descent(self,
+                         gradient_method=None,
+                         learning_rate=None,
+                         n_steps=None,
+                         termination_condition=None,
+                         adam_optimization=None,
+                         exact_dist=None):
 
-        if gradient_method == 'analytical':
-            gradient = self.exact_analytical_grads
+        if gradient_method is None or gradient_method == 'analytical':
+            gradient = self.analytical_gradients
         elif gradient_method == 'finite_difference':
             gradient = self.finite_difference
+        else:
+            raise ValueError("Gradient method not recognized")
+
+        if exact_dist is None:
+            exact_dist = self.data['exact_distribution']
+        else:
+            exact_dist = exact_dist
+
+        if learning_rate is None:
+            learning_rate = self.data['learning_rate']
+        else:
+            learning_rate = learning_rate
+
+        if n_steps is None:
+            n_steps = self.data['gradient_descent_steps']
+        else:
+            n_steps = n_steps
+
+        if termination_condition is None:
+            termination_condition = self.data['termination_threshold']
+        else:
+            termination_condition = termination_condition
+
+        if adam_optimization is None:
+            adam_optimization = self.data['adam_optimizer']
+        else:
+            adam_optimization = adam_optimization
+
+        params = copy.deepcopy(self.rbm.get_parameters_as_array())
+
+        if adam_optimization:
+            adam = Adam()
 
         energy_landscape = []
+        a = 0
 
         for i in range(n_steps):
             try:
+                b = a
+
                 energy = self.exact_energy()
+                a = energy
                 print(f"Gradient descent step {i + 1}, energy: {energy}")
                 energy_landscape.append(energy)
 
-                adam_grads = adam(gradient(params))
-                params = params - learning_rate * np.array(adam_grads)
+                if adam_optimization:
+                    new_grads = adam(gradient(params, exact_dist))
+                else:
+                    new_grads = gradient(params, exact_dist)
+                    
+                params = params - learning_rate * np.array(new_grads)
                 self.rbm.set_parameters_from_array(params)
 
             except KeyboardInterrupt:
                 print("Gradient descent interrupted")
                 break
 
+            if termination_condition > abs(b-a):
+                print("Termination condition reached")
+                break
+
         return energy_landscape
 
-    def exact_analytical_grads(self, params):
+    def analytical_gradients(self, params, exact_dist):
+        if exact_dist:
+            gradient = self.exact_grads
+        else:
+            gradient = self.estimate_grads
+
+        return gradient(params)
+
+    def exact_grads(self, params):
         distribution = self.get_all_states()
         g_j = np.zeros(len(params), dtype=complex)
         omega_j = []
@@ -152,7 +209,7 @@ class Model(object):
 
         return grads
 
-    def analytical_grads(self, params) -> np.ndarray:
+    def estimate_grads(self, params) -> np.ndarray:
         distribution = self.get_mcmc_states()
         omega_bar = self.omega_bar(distribution)
 
@@ -225,13 +282,6 @@ class Model(object):
         return -1 * state
 
     def _hidden_bias_grads(self, state) -> np.ndarray:
-        # hidden_bias_grads = np.zeros(self.rbm.hidden_size, dtype=complex)
-        #
-        # for j in range(self.rbm.hidden_size):
-        #     _1 = -self.rbm.W[:, j] @ state - self.rbm.c[j]
-        #     _2 = np.exp(_1)
-        #     hidden_bias_grads[j] = -(_2 / (1 + _2))
-
         _1 = state @ -(self.rbm.W + self.rbm.c)
         _2 = np.exp(_1)
         hidden_bias_grads = -(_2 / (1 + _2))
@@ -239,27 +289,33 @@ class Model(object):
         return np.asarray(hidden_bias_grads, dtype=complex)
 
     def _weights_grads(self, state) -> np.ndarray:
-
-        # weight_gradients = np.zeros((self.rbm.visible_size, self.rbm.hidden_size), dtype=complex)
-
         _1 = state @ -(self.rbm.W + self.rbm.c)
         _2 = np.exp(_1)/(1 + np.exp(_1))
         weight_gradients = -1 * _2.reshape(-1, 1) @ state.reshape(1, -1)
 
-        # for i in range(self.rbm.hidden_size):
-        #     _1 = (-self.rbm.W[:, i] @ state) - self.rbm.c[i]
-        #     _2 = np.exp(_1)/(1 + np.exp(_1))
-        #
-        #     for j in range(self.rbm.visible_size):
-        #
-        #         weight_gradients[j, i] = -1 * state[j] * _2
-
         return np.asarray(weight_gradients, dtype=complex)
+
+    def plot_mcmc_vs_exact(self):
+        from matplotlib import pyplot as plt
+        self.walker.estimate_distribution(self.rbm.probability)
+        history = [utils.binary_array_to_int(state) for state in self.walker.get_history()]
+
+        plt.figure(0)
+        plt.hist(history, density=True, bins=range(2 ** self.rbm.visible_size + 1), edgecolor="black", align='left',
+                 rwidth=0.8)
+        plt.scatter([x for x in range(2 ** self.rbm.visible_size)], self.get_prob_distribution(), color='red')
+        plt.title("RBM Probability Distribution")
+        plt.xlabel('State')
+        plt.ylabel('Probalility')
+        plt.legend(['Analytic Results', 'MCMC Results'])
+
+        plt.show()
 
 
 class Adam(object):
 
-    def __init__(self, grads: np.ndarray = None, beta1: float = 0.9, beta2: float = 0.999):
+    def __init__(self, grads=None, beta1: float = 0.9, beta2: float = 0.999):
+
         self.grads = grads
         self.beta1 = beta1
         self.beta2 = beta2
@@ -269,11 +325,14 @@ class Adam(object):
         self.v = 0
 
     def __call__(self, grads):
+        if grads is None:
+            print("Missing argument: grads in Adam")
+
         self.grads = grads
         return self.adam_step()
 
-    def set_grads(self, grads):
-        self.grads = grads
+    #def set_grads(self, grads):
+    #    self.grads = grads
 
     def adam_step(self):
         self.t += 1

@@ -6,13 +6,28 @@ from config_parser import get_config_file
 
 class RBM(object):
 
-    def __init__(self, visible_bias=None, hidden_bias=None, weights: np.ndarray = None):
+    def __init__(self,
+                 visible_size=None,
+                 hidden_size=None,
+                 visible_bias=None,
+                 hidden_bias=None,
+                 weights: np.ndarray = None):
 
         data = get_config_file()['parameters']  # Load the config file
 
-        self.visible_size = data['visible_size']  # Get number of visible nodes from the config file
-        self.hidden_size = data['hidden_size']  # Get number of hidden nodes from the config file
-        self.state = utils.random_complex_array(self.visible_size)  # Set the initial state to a random complex array
+        if visible_bias is not None:
+            self.visible_size = len(visible_bias)
+        elif visible_size is None:
+            self.visible_size = data['visible_size']
+        else:
+            self.visible_size = visible_size
+
+        if hidden_bias is not None:
+            self.hidden_size = len(hidden_bias)
+        elif hidden_size is None:
+            self.hidden_size = data['hidden_size']
+        else:
+            self.hidden_size = hidden_size
 
         if visible_bias is None:
             self.b = np.random.uniform(-1, 1, self.visible_size)  # Visible layer bias #
@@ -28,6 +43,9 @@ class RBM(object):
             self.W = np.random.rand(self.visible_size, self.visible_size)  # s - h weights
         else:
             self.W = weights
+
+
+        self.state = utils.random_binary_array(self.visible_size)
 
     def set_visible(self, state):
         self.state = state
