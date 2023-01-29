@@ -1,13 +1,15 @@
 {
   "parameters":{
         "visible_size": 2,
-        "hidden_size": 2,
+        "hidden_size": 3,
         "burn_in_steps": 10,
         "walker_steps": 100,
         "hamming_distance": 1,
 
         "learning_rate": 0.05,
-        "gradient_descent_steps": 100
-
+        "gradient_descent_steps": 500,
+        "termination_threshold": 1e-4,
+        "adam_optimizer": true,
+        "mcmc_distribution": false
   }
 }
