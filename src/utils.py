@@ -7,6 +7,10 @@ def random_array(size, mu=0, sigma=1):
     return np.random.normal(mu, sigma, size)
 
 
+def random_binary_array(size):
+    return np.random.randint(0, 2, size)
+
+
 def random_complex_array(size, mu=0, sigma=1):
     re = np.random.normal(mu, sigma, size)
     im = np.random.normal(mu, sigma, size) * 1j
