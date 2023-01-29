@@ -26,4 +26,4 @@ rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currentl
 model = Model(rbm, walker, H)  # Initializing model with RBM and Hamiltonian
 
 
-print(model.exact_analytical_grads(model.rbm.get_parameters_as_array()))
+print(model.exact_grads(model.rbm.get_parameters_as_array()))
