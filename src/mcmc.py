@@ -2,8 +2,6 @@ import copy
 import random
 import numpy as np
 from config_parser import get_config_file
-import src.utils as utils
-
 
 class Walker(object):
 
