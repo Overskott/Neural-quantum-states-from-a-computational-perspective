@@ -29,13 +29,12 @@ if __name__ == '__main__':
 
     # Printing results
     print(f"Accept rate: {model.walker.average_acceptance()}")
-
     print(f"Estimated energy: {model.estimate_energy()}")
     print(f"Exact energy: {np.linalg.eigvalsh(H)}")
 
-    fd_plot_list = model.gradient_descent('finite_difference')
+    fd_plot_list = model.gradient_descent(gradient_method='finite_difference')
 
-    analytic_plot_list = model_copy.gradient_descent('analytical')
+    analytic_plot_list = model_copy.gradient_descent(gradient_method='analytical', exact_dist=False)
 
     plt.plot(np.real(fd_plot_list), label='Finite Difference')
     plt.plot(np.real(analytic_plot_list), label='Analytical')
