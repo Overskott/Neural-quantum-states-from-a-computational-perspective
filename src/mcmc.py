@@ -3,6 +3,7 @@ import random
 import numpy as np
 from config_parser import get_config_file
 
+
 class Walker(object):
 
     def __init__(self,

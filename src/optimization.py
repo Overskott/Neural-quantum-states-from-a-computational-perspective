@@ -34,6 +34,7 @@ class FiniteDifference(object):
 
         if not exact_dist:
             function = self.model.estimate_energy
+
         else:
             function = self.model.exact_energy
         reset_value = param
@@ -96,11 +97,13 @@ class AnalyticalGradient(object):
             omega_j.append(self.omega(state))
 
         omega_j = np.transpose(np.asarray(omega_j))
-
+        wave_function = np.asarray(self.model.get_wave_function(distribution))
         for j in range(len(params)):
-            g_j[j] = min(np.linalg.eigvalsh(self.model.hamiltonian * np.diag(omega_j[j]))) \
-                     - self.model.exact_energy() * min(np.linalg.eigvalsh(np.diag(omega_j[j])))
-        grads = 2 * np.real(g_j)
+
+            g_j[j] = wave_function @ (self.model.hamiltonian @ np.diag(omega_j[j])) @ wave_function.conj() - \
+                     self.model.exact_energy(distribution) * wave_function @ np.diag(omega_j[j]) @ wave_function.conj()
+
+        grads = 2 * g_j
 
         return grads
 
@@ -115,7 +118,7 @@ class AnalyticalGradient(object):
             for state in distribution:
                 g_j += np.conjugate(self.model.local_energy(state)) * (self.omega(state) - omega_bar)
 
-            grads = 2 * np.real(g_j) / len(distribution)
+            grads = 2 * g_j / len(distribution)
 
         return grads
 
@@ -128,19 +131,15 @@ class AnalyticalGradient(object):
         """
 
         if dist is None:
-            self.model.walker.estimate_distribution(self.model.rbm.probability)
-            distribution = self.model.walker.get_history()
+            distribution = self.model.etimate_distribution()
         else:
             distribution = dist
 
-        omega_bar_j = np.zeros(len(self.model.rbm.get_parameters_as_array()))
-        omega_j = 0
+        omega_j = np.zeros(len(self.model.rbm.get_parameters_as_array()), dtype=complex)
+        for state in distribution:
+            omega_j += self.omega(state)
 
-        for j in range(omega_bar_j.shape[0]):
-            for state in distribution:
-                omega_j += self.omega(state)
-
-            omega_bar_j = omega_j / len(distribution)
+        omega_bar_j = omega_j / len(distribution)
 
         return omega_bar_j
 
@@ -177,14 +176,15 @@ class AnalyticalGradient(object):
         return -1 * state
 
     def _hidden_bias_grads(self, state) -> np.ndarray:
-        _1 = state @ -(self.model.rbm.W + self.model.rbm.c)
-        _2 = np.exp(_1)
-        hidden_bias_grads = -(_2 / (1 + _2))
+
+        exponent = -(state @ self.model.rbm.W + self.model.rbm.c)
+        expression = np.exp(exponent)
+        hidden_bias_grads = -(expression / (1 + expression))
 
         return np.asarray(hidden_bias_grads, dtype=complex)
 
     def _weights_grads(self, state) -> np.ndarray:
-        _1 = state @ -(self.model.rbm.W + self.model.rbm.c)
+        _1 = -(state @ self.model.rbm.W + self.model.rbm.c)
         _2 = np.exp(_1) / (1 + np.exp(_1))
         weight_gradients = -1 * _2.reshape(-1, 1) @ state.reshape(1, -1)
 
