@@ -28,16 +28,27 @@ class Model(object):
         self.walker.estimate_distribution(self.rbm.probability)
         return np.asarray(self.walker.get_history())
 
-    def get_prob_distribution(self):
-        result_list = np.asarray([self.rbm.probability(state) for state in self.get_all_states()])
+    def get_prob_distribution(self, dist):
+        result_list = np.asarray([self.rbm.probability(state) for state in dist])
         norm = sum(result_list)
 
         return result_list / norm
 
-    def exact_energy(self) -> float:
+    def get_wave_function(self, dist):
+        amp_list = np.asarray([self.rbm.amplitude(state) for state in dist])
+        norm = sum(np.abs(amp_list)**2)
+
+        return amp_list / norm
+
+    def exact_energy(self, dist=None) -> float:
+
+        if dist is None:
+            distribution = self.get_all_states()
+        else:
+            distribution = dist
         # Calculates the exact energy of the model by sampling over all possible states
-        local_energy_list = [self.local_energy(state) for state in self.get_all_states()]  # Can be computed only once
-        probability_list = self.get_prob_distribution()
+        local_energy_list = [self.local_energy(state) for state in distribution]  # Can be computed only once
+        probability_list = self.get_prob_distribution(distribution)
 
         return sum(probability_list * local_energy_list)
 
@@ -119,7 +130,7 @@ class Model(object):
             try:
                 b = a
 
-                energy = self.exact_energy()
+                energy = self.exact_energy(self.get_all_states())
                 a = energy
                 print(f"Gradient descent step {i + 1}, energy: {energy}")
                 energy_landscape.append(energy)
@@ -143,3 +154,25 @@ class Model(object):
 
         return energy_landscape
 
+
+class GradientDescent(object):
+
+    def __init__(self, model: Model, learning_rate=None, n_steps=None, termination_condition=None, adam_optimization=None):
+        self.model = model
+        self.learning_rate = learning_rate
+        self.n_steps = n_steps
+        self.termination_condition = termination_condition
+        self.adam_optimization = adam_optimization
+
+
+    def __call__(self, *args, **kwargs):
+        return self.model.gradient_descent(self.learning_rate, self.n_steps, self.termination_condition,
+                                           self.adam_optimization)
+
+    def __str__(self):
+        return f"Gradient descent with learning rate {self.learning_rate}, " \
+               f"{self.n_steps} steps and termination condition {self.termination_condition}"
+
+    def __repr__(self):
+        return f"Gradient descent with learning rate {self.learning_rate}, " \
+               f"{self.n_steps} steps and termination condition {self.termination_condition}"

@@ -44,7 +44,6 @@ class RBM(object):
         else:
             self.W = weights
 
-
         self.state = utils.random_binary_array(self.visible_size)
 
     def set_visible(self, state):
@@ -111,8 +110,8 @@ class RBM(object):
         product = 1
 
         for i in range(self.visible_size):
-            scalar = (self.W[:, i] @ state) + self.c[i]
-            product *= (1 + np.exp(-scalar))
+            scalar = -(self.W[:, i] @ state + self.c[i])
+            product *= (1 + np.exp(scalar))
 
         bias = np.exp(np.transpose(self.b) @ state)
 
