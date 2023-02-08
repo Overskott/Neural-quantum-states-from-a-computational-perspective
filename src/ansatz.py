@@ -40,11 +40,11 @@ class RBM(object):
             self.c = hidden_bias
 
         if weights is None:
-            self.W = np.random.rand(self.visible_size, self.visible_size)  # s - h weights
+            self.W = np.random.rand(self.visible_size, self.hidden_size)  # s - h weights
         else:
             self.W = weights
 
-        self.state = utils.random_binary_array(self.visible_size)
+        self.state = utils.random_binary_array(2**self.visible_size)
 
     def set_visible(self, state):
         self.state = state
@@ -109,7 +109,8 @@ class RBM(object):
         """ Calculates the amplitude of finding the RBM in state s """
         product = 1
 
-        for i in range(self.visible_size):
+        for i in range(self.hidden_size):
+
             scalar = -(self.W[:, i] @ state + self.c[i])
             product *= (1 + np.exp(scalar))
 

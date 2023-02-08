@@ -36,7 +36,7 @@ class Model(object):
 
     def get_wave_function(self, dist):
         amp_list = np.asarray([self.rbm.amplitude(state) for state in dist])
-        norm = sum(np.abs(amp_list)**2)
+        norm = np.sqrt(sum(np.abs(amp_list)**2))
 
         return amp_list / norm
 
@@ -47,7 +47,7 @@ class Model(object):
         else:
             distribution = dist
         # Calculates the exact energy of the model by sampling over all possible states
-        local_energy_list = [self.local_energy(state) for state in distribution]  # Can be computed only once
+        local_energy_list = np.asarray([self.local_energy(state) for state in distribution])  # Can be computed only once
         probability_list = self.get_prob_distribution(distribution)
 
         return sum(probability_list * local_energy_list)
@@ -55,14 +55,14 @@ class Model(object):
     def local_energy(self, state: np.ndarray) -> float:
         """Calculates the local energy of the RBM in state s"""
 
-        h_size = self.hamiltonian.shape[0]
+        hamiltonian_size = self.hamiltonian.shape[0]
 
         i = utils.binary_array_to_int(state)
-        local_state = state
-        local_energy = 0
-        p_i = self.rbm.amplitude(local_state)
+        p_i = self.rbm.amplitude(state)
 
-        for j in range(h_size):
+        local_energy = 0
+
+        for j in range(hamiltonian_size):
             p_j = self.rbm.amplitude(utils.int_to_binary_array(j, state.size))
 
             h_ij = self.hamiltonian[i, j]

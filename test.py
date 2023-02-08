@@ -1,3 +1,5 @@
+import numpy as np
+
 from config_parser import get_config_file
 from src import utils
 from src.ansatz import RBM
@@ -25,5 +27,12 @@ walker = Walker()
 rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
 model = Model(rbm, walker, H)  # Initializing model with RBM and Hamiltonian
 
+state = np.zeros(visible_layer_size)
 
-print(model.exact_grads(model.rbm.get_parameters_as_array()))
+rbm.amplitude(state)
+
+
+list_1 = [1, 2, 3, 4, 5]
+np_list = np.array(list_1)
+
+print(list_1 * np_list)

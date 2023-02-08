@@ -23,14 +23,14 @@ class FiniteDifference(object):
         return self.finite_difference()
 
     def finite_difference(self):
-        gradients = []
+        gradients = np.zeros(len(self.model.rbm.get_parameters_as_array()), dtype=complex)
 
         for i, param in enumerate(self.model.rbm.get_parameters_as_array()):
-            gradients.append(self.finite_difference_step(i, param, exact_dist=self.exact_dist))
+            gradients[i] = self.finite_difference_step(i, param, exact_dist=self.exact_dist)
 
-        return np.asarray(gradients, dtype=complex)
+        return gradients
 
-    def finite_difference_step(self, index, param, exact_dist, h=1e-2):
+    def finite_difference_step(self, index, param, exact_dist, h=1e-4):
 
         if not exact_dist:
             function = self.model.estimate_energy
@@ -59,7 +59,7 @@ class FiniteDifference(object):
 
         self.model.rbm.set_parameter_from_value(index, reset_value)
 
-        return (re_plus - re_minus) / (2 * h) + (im_plus - im_minus) / (2 * h * 1j)
+        return (re_plus - re_minus) / (2 * h) + (im_plus - im_minus) / (2 * h)
 
 
 class AnalyticalGradient(object):
@@ -98,10 +98,11 @@ class AnalyticalGradient(object):
 
         omega_j = np.transpose(np.asarray(omega_j))
         wave_function = np.asarray(self.model.get_wave_function(distribution))
+
         for j in range(len(params)):
 
             g_j[j] = wave_function @ (self.model.hamiltonian @ np.diag(omega_j[j])) @ wave_function.conj() - \
-                     self.model.exact_energy(distribution) * wave_function @ np.diag(omega_j[j]) @ wave_function.conj()
+                     (self.model.exact_energy(distribution) * wave_function @ np.diag(omega_j[j]) @ wave_function.conj())
 
         grads = 2 * g_j
 
