@@ -85,7 +85,7 @@ class AnalyticalGradient(object):
         omega_j = []
 
         for i, state in enumerate(distribution):
-            omega_j.append(self.omega_exact(state))
+            omega_j.append(self.omega(state))
 
         omega_j = np.transpose(np.asarray(omega_j))
 
