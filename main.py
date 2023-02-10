@@ -11,7 +11,7 @@ if __name__ == '__main__':
     visible_layer_size = parameters['visible_size']  # Number of qubits
     hidden_layer_size = parameters['hidden_size']  # Number of hidden nodes
 
-    seed = 42  # Seed for random number generator
+    seed = 44  # Seed for random number generator
     np.random.seed(seed)
 
     b = random_complex_array(visible_layer_size)  # Visible layer bias
@@ -32,10 +32,10 @@ if __name__ == '__main__':
     print(f"Estimated energy: {model.estimate_energy()}")
     print(f"Exact energy: {np.linalg.eigvalsh(H)}")
 
-    #fd_plot_list = model.gradient_descent(gradient_method='finite_difference', exact_dist=True)
+    fd_plot_list = model.gradient_descent(gradient_method='finite_difference', exact_dist=True)
     analytic_plot_list = model_copy.gradient_descent(gradient_method='analytical', exact_dist=True)
 
-    #plt.plot(np.real(fd_plot_list), label='Finite Difference')
+    plt.plot(np.real(fd_plot_list), label='Finite Difference')
     plt.plot(np.real(analytic_plot_list), label='Analytical')
     plt.axhline(y=min(np.linalg.eigvalsh(H)), color='red', linestyle='--', label='Ground State')
     plt.title('Analytical vs finite difference gradient descent')
