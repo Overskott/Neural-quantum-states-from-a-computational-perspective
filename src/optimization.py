@@ -23,7 +23,7 @@ class FiniteDifference(object):
         return self.finite_difference()
 
     def finite_difference(self):
-        gradients = np.zeros(len(self.model.rbm.get_parameters_as_array()), dtype=complex)
+        gradients = np.zeros(len(self.model.rbm.get_parameters_as_array()))
 
         for i, param in enumerate(self.model.rbm.get_parameters_as_array()):
             gradients[i] = self.finite_difference_step(i, param, exact_dist=self.exact_dist)
@@ -37,6 +37,7 @@ class FiniteDifference(object):
 
         else:
             function = self.model.exact_energy
+
         reset_value = param
 
         param += h
@@ -47,19 +48,9 @@ class FiniteDifference(object):
         self.model.rbm.set_parameter_from_value(index, param)
         re_minus = function()
 
-        param += h
-
-        param += h * 1j
-        self.model.rbm.set_parameter_from_value(index, param)
-        im_plus = function()
-
-        param -= 2 * h * 1j
-        self.model.rbm.set_parameter_from_value(index, param)
-        im_minus = function()
-
         self.model.rbm.set_parameter_from_value(index, reset_value)
 
-        return (re_plus - re_minus) / (2 * h) + (im_plus - im_minus) / (2 * h)
+        return (re_plus - re_minus) / (2 * h)
 
 
 class AnalyticalGradient(object):
@@ -94,17 +85,19 @@ class AnalyticalGradient(object):
         omega_j = []
 
         for i, state in enumerate(distribution):
-            omega_j.append(self.omega(state))
+            omega_j.append(self.omega_exact(state))
 
         omega_j = np.transpose(np.asarray(omega_j))
-        wave_function = np.asarray(self.model.get_wave_function(distribution))
+
+        wave_function = np.asarray(self.model.get_wave_function())
+
+        energy = self.model.exact_energy(distribution)
 
         for j in range(len(params)):
+            g_j[j] = wave_function.conj() @ (self.model.hamiltonian @ np.diag(omega_j[j])) @ wave_function - \
+                     (energy * wave_function.conj() @ np.diag(omega_j[j]) @ wave_function)
 
-            g_j[j] = wave_function @ (self.model.hamiltonian @ np.diag(omega_j[j])) @ wave_function.conj() - \
-                     (self.model.exact_energy(distribution) * wave_function @ np.diag(omega_j[j]) @ wave_function.conj())
-
-        grads = 2 * g_j
+        grads = 2 * np.real(g_j)
 
         return grads
 
@@ -112,14 +105,11 @@ class AnalyticalGradient(object):
         distribution = self.model.get_mcmc_states()
         omega_bar = self.omega_bar(distribution)
 
-        grads = np.zeros(len(params))
+        g_j = 0
+        for state in distribution:
+            g_j += np.conjugate(self.model.local_energy(state)) * (self.omega(state) - omega_bar)
 
-        for j in range(len(params)):
-            g_j = 0
-            for state in distribution:
-                g_j += np.conjugate(self.model.local_energy(state)) * (self.omega(state) - omega_bar)
-
-            grads = 2 * g_j / len(distribution)
+        grads = 2 * np.real(g_j) / len(distribution)
 
         return grads
 
@@ -145,8 +135,10 @@ class AnalyticalGradient(object):
         return omega_bar_j
 
     def omega(self, state) -> np.ndarray:
-
         return 1 / self.model.rbm.amplitude(state) * self.param_grads(state)
+
+    def omega_exact(self, state) -> np.ndarray:
+        return 1 / self.model.get_amplitude_normalized(state) * self.param_grads(state)
 
     def param_grads(self, state: np.ndarray) -> np.ndarray:
         """
@@ -158,11 +150,13 @@ class AnalyticalGradient(object):
             Returns:
                 np.ndarray: The gradient of the parameters with respect to the energy of the state.
         """
-        b_grad = self._visible_bias_grads(state)
-        c_grad = self._hidden_bias_grads(state)
-        w_grad = self._weights_grads(state)
+        b_grad_r = b_grad_i = self._visible_bias_grads(state)
+        c_grad_r = self._hidden_bias_grads_r(state)
+        c_grad_i = self._hidden_bias_grads_i(state)
+        w_grad_r = self._weights_grads_r(state)
+        w_grad_i = self._weights_grads_i(state)
 
-        return np.concatenate((b_grad, c_grad, w_grad.flatten()))
+        return np.concatenate((b_grad_r, c_grad_r, w_grad_r.flatten(), b_grad_i, c_grad_i, w_grad_i.flatten()))
 
     def _visible_bias_grads(self, state) -> np.ndarray:
         """
@@ -176,16 +170,30 @@ class AnalyticalGradient(object):
         """
         return -1 * state
 
-    def _hidden_bias_grads(self, state) -> np.ndarray:
+    def _hidden_bias_grads_r(self, state) -> np.ndarray:
 
-        exponent = -(state @ self.model.rbm.W + self.model.rbm.c)
-        expression = np.exp(exponent)
-        hidden_bias_grads = -(expression / (1 + expression))
+        exponent_r = -(state @ self.model.rbm.W_r + self.model.rbm.c_r)
+        expression_r = np.exp(exponent_r)
+        hidden_bias_grads_r = -(expression_r / (1 + expression_r))
 
-        return np.asarray(hidden_bias_grads, dtype=complex)
+        return np.asarray(hidden_bias_grads_r, dtype=complex)
 
-    def _weights_grads(self, state) -> np.ndarray:
-        _1 = -(state @ self.model.rbm.W + self.model.rbm.c)
+    def _hidden_bias_grads_i(self, state) -> np.ndarray:
+        exponent_i = -(state @ self.model.rbm.W_i + self.model.rbm.c_i)
+        expression_i = np.exp(exponent_i)
+        hidden_bias_grads_i = -(expression_i / (1 + expression_i))
+
+        return np.asarray(hidden_bias_grads_i, dtype=complex)
+
+    def _weights_grads_r(self, state) -> np.ndarray:
+        _1 = -(state @ self.model.rbm.W_r + self.model.rbm.c_r)
+        _2 = np.exp(_1) / (1 + np.exp(_1))
+        weight_gradients = -1 * _2.reshape(-1, 1) @ state.reshape(1, -1)
+
+        return np.asarray(weight_gradients, dtype=complex)
+
+    def _weights_grads_i(self, state) -> np.ndarray:
+        _1 = -(state @ self.model.rbm.W_i + self.model.rbm.c_i)
         _2 = np.exp(_1) / (1 + np.exp(_1))
         weight_gradients = -1 * _2.reshape(-1, 1) @ state.reshape(1, -1)
 

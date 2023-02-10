@@ -34,11 +34,18 @@ class Model(object):
 
         return result_list / norm
 
-    def get_wave_function(self, dist):
+    def get_wave_function(self):
+        dist = self.get_all_states()
         amp_list = np.asarray([self.rbm.amplitude(state) for state in dist])
         norm = np.sqrt(sum(np.abs(amp_list)**2))
 
         return amp_list / norm
+
+    def get_amplitude_normalized(self, state):
+        wf = self.get_wave_function()
+        amp = wf[utils.binary_array_to_int(state)]
+
+        return amp
 
     def exact_energy(self, dist=None) -> float:
 
@@ -50,7 +57,7 @@ class Model(object):
         local_energy_list = np.asarray([self.local_energy(state) for state in distribution])  # Can be computed only once
         probability_list = self.get_prob_distribution(distribution)
 
-        return sum(probability_list * local_energy_list)
+        return np.real(sum(probability_list * local_energy_list))
 
     def local_energy(self, state: np.ndarray) -> float:
         """Calculates the local energy of the RBM in state s"""
@@ -134,7 +141,7 @@ class Model(object):
                 a = energy
                 print(f"Gradient descent step {i + 1}, energy: {energy}")
                 energy_landscape.append(energy)
-
+                print(f"Gradient: {gradient(self, exact_dist)}")
                 if adam_optimization:
                     new_grads = adam(gradient(self, exact_dist))
                 else:
