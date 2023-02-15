@@ -141,7 +141,7 @@ class Model(object):
                 a = energy
                 print(f"Gradient descent step {i + 1}, energy: {energy}")
                 energy_landscape.append(energy)
-                print(f"Gradient: {gradient(self, exact_dist)}")
+                #print(f"Gradient: {gradient(self, exact_dist)}")
                 if adam_optimization:
                     new_grads = adam(gradient(self, exact_dist))
                 else:
