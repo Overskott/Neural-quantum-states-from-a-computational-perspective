@@ -1,5 +1,6 @@
 import numpy as np
 
+
 from config_parser import get_config_file
 from src import utils
 from src.ansatz import RBM
@@ -20,19 +21,18 @@ b = random_complex_array(visible_layer_size)  # Visible layer bias
 c = random_complex_array(hidden_layer_size)  # Hidden layer bias
 W = random_complex_matrix(visible_layer_size, hidden_layer_size)  # Visible - hidden weights
 #H = random_hamiltonian(2**visible_layer_size)  # Hamiltonian
-
-H =np.array([[-2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 2]])
+H = random_diagonal_hamiltonian(2**visible_layer_size, 1)
+#H =np.array([[-2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 2]])
+#H =np.array([[1, 2, 3, 4], [-2, 1, 2, 3], [-3, -2, 1, 2], [-4, -3, -2, 1]])
 
 walker = Walker()
 rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
 model = Model(rbm, walker, H)  # Initializing model with RBM and Hamiltonian
 
-state = np.zeros(visible_layer_size)
+state = np.asarray([0, 1, 1])
+print(state)
+print(H)
 
-rbm.amplitude(state)
 
-
-list_1 = [1, 2, 3, 4, 5]
-np_list = np.array(list_1)
-
-print(list_1 * np_list)
+print(model.local_energy(state))
+print(model.local_energy(state))

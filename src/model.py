@@ -62,19 +62,31 @@ class Model(object):
     def local_energy(self, state: np.ndarray) -> float:
         """Calculates the local energy of the RBM in state s"""
 
-        hamiltonian_size = self.hamiltonian.shape[0]
-
         i = utils.binary_array_to_int(state)
         p_i = self.rbm.amplitude(state)
-
         local_energy = 0
+        off_diag = self.data['diag_above']
 
-        for j in range(hamiltonian_size):
-            p_j = self.rbm.amplitude(utils.int_to_binary_array(j, state.size))
+        if off_diag:
+            for j in range(off_diag, -off_diag-1, -1):
+                j = i + j
 
-            h_ij = self.hamiltonian[i, j]
+                if j < 0 or j >= 2 ** state.size:  # If the j index is out of bounds skip calculation
+                    continue
+                else:
+                    p_j = self.rbm.amplitude(utils.int_to_binary_array(j, state.size))
+                    h_ij = self.hamiltonian[i, j]
 
-            local_energy += h_ij * p_j / p_i
+                    local_energy += h_ij * p_j / p_i
+        else:
+            hamiltonian_size = self.hamiltonian.shape[0]
+
+            for j in range(hamiltonian_size):
+                p_j = self.rbm.amplitude(utils.int_to_binary_array(j, state.size))
+
+                h_ij = self.hamiltonian[i, j]
+
+                local_energy += h_ij * p_j / p_i
 
         return local_energy
 

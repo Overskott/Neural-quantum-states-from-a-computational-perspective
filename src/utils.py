@@ -46,6 +46,13 @@ def random_hamiltonian(size: int):
 
     return hamiltonian
 
+def random_diagonal_hamiltonian(size: int, off_diagonal=0):
+    """Generate a random diagonal hamiltonian matrix of size n_qubits x n_qubits"""
+    H = random_hamiltonian(size)
+    diag_ham = -(H - np.triu(H, -off_diagonal) - np.tril(H, off_diagonal))
+
+    return diag_ham
+
 
 def generate_positive_ground_state_hamiltonian(n_qubits: int):
     size = 2**n_qubits
@@ -74,7 +81,7 @@ def generate_positive_ground_state_hamiltonian(n_qubits: int):
 
 
 def int_to_binary_array(value, length):
-
+    value = int(value)
     binary = format(value, 'b')
     bit_array = np.zeros(length, dtype='i4')
 
@@ -91,7 +98,7 @@ def binary_array_to_int(binary_array):
     for i, bit in enumerate(np.flip(binary_array)):
         value += bit * 2 ** i
 
-    return value
+    return int(value)
 
 
 def flip_bit(state: np.ndarray , index: int):
