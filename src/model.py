@@ -1,4 +1,5 @@
 import copy
+import time
 from typing import List
 
 from config_parser import get_config_file
@@ -17,8 +18,11 @@ class Model(object):
         self.rbm = rbm
         self.walker = walker
         self.hamiltonian = hamiltonian
-
+        self.off_diag = utils.get_matrix_off_diag_range(self.hamiltonian)
+        print(self.off_diag)
         self.data = get_config_file()['parameters']  # Load the config file
+
+        self.optimizing_time = 0
 
     def get_all_states(self):
         return np.asarray([utils.int_to_binary_array(i, self.rbm.visible_size)
@@ -65,10 +69,18 @@ class Model(object):
         i = utils.binary_array_to_int(state)
         p_i = self.rbm.amplitude(state)
         local_energy = 0
-        off_diag = self.data['diag_above']
+        H = self.hamiltonian
+        hamiltonian_size = H.shape[0]
 
-        if off_diag:
-            for j in range(off_diag, -off_diag-1, -1):
+        if self.off_diag+1 - hamiltonian_size == 0:
+
+            for j in range(hamiltonian_size):
+                p_j = self.rbm.amplitude(utils.int_to_binary_array(j, state.size))
+                h_ij = self.hamiltonian[i, j]
+
+                local_energy += h_ij * p_j / p_i
+        else:
+            for j in range(self.off_diag, -self.off_diag - 1, -1):
                 j = i + j
 
                 if j < 0 or j >= 2 ** state.size:  # If the j index is out of bounds skip calculation
@@ -78,15 +90,6 @@ class Model(object):
                     h_ij = self.hamiltonian[i, j]
 
                     local_energy += h_ij * p_j / p_i
-        else:
-            hamiltonian_size = self.hamiltonian.shape[0]
-
-            for j in range(hamiltonian_size):
-                p_j = self.rbm.amplitude(utils.int_to_binary_array(j, state.size))
-
-                h_ij = self.hamiltonian[i, j]
-
-                local_energy += h_ij * p_j / p_i
 
         return local_energy
 
@@ -145,6 +148,8 @@ class Model(object):
         energy_landscape = []
         a = 0
 
+        start = time.time()
+
         for i in range(n_steps):
             try:
                 b = a
@@ -153,7 +158,7 @@ class Model(object):
                 a = energy
                 print(f"Gradient descent step {i + 1}, energy: {energy}")
                 energy_landscape.append(energy)
-                print(f"Gradient: {gradient(self, exact_dist)}")
+                # print(f"Gradient: {gradient(self, exact_dist)}")
                 if adam_optimization:
                     new_grads = adam(gradient(self, exact_dist))
                 else:
@@ -170,6 +175,8 @@ class Model(object):
             if termination_condition > abs(b - a):
                 print("Termination condition reached")
                 break
+
+        self.optimizing_time = time.time() - start
 
         return energy_landscape
 
