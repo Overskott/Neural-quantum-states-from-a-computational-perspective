@@ -17,8 +17,10 @@ if __name__ == '__main__':
     b = random_complex_array(visible_layer_size)  # Visible layer bias
     c = random_complex_array(hidden_layer_size)  # Hidden layer bias
     W = random_complex_matrix(visible_layer_size, hidden_layer_size)  # Visible - hidden weights
+
     #H = random_hamiltonian(2**visible_layer_size)  # Hamiltonian
     H = random_diagonal_hamiltonian(2**visible_layer_size, 1)
+
     #H = np.diag([-2, 0, -0, -7])  # Hamiltonian
     #H = np.diag([-2, 0, 1, -8, 0, 0, -5, -2])  # Hamiltonian
     #H = np.diag(np.random.randint(-5, 6, 2**visible_layer_size))  # Hamiltonian
@@ -32,8 +34,10 @@ if __name__ == '__main__':
     print(f"Accept rate: {model.walker.average_acceptance()}")
     #print(f"Estimated energy: {model.estimate_energy()}")
     print(f"Exact energy: {np.linalg.eigvalsh(H)}")
+    print(f"Ground state: {np.linalg.eig(H)[1].T[0]}")
 
     fd_plot_list = model.gradient_descent(gradient_method='finite_difference', exact_dist=True)
+
     #fd_plot_list_mc = model.gradient_descent(gradient_method='finite_difference', exact_dist=False)
     #analytic_plot_list = model.gradient_descent(gradient_method='analytical', exact_dist=True)
     analytic_plot_list_mc = model_copy.gradient_descent(gradient_method='analytical', exact_dist=False)
