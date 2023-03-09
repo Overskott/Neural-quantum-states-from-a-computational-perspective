@@ -18,10 +18,9 @@ if __name__ == '__main__':
     c = random_complex_array(hidden_layer_size)  # Hidden layer bias
     W = random_complex_matrix(visible_layer_size, hidden_layer_size)  # Visible - hidden weights
 
-    seed = 44  # Seed for random number generator
-    np.random.seed(seed)
+    #H = random_hamiltonian(2**visible_layer_size)  # Hamiltonian
+    H = random_diagonal_hamiltonian(2**visible_layer_size, 1)
 
-    H = random_hamiltonian(2**visible_layer_size)  # Hamiltonian
     #H = np.diag([-2, 0, -0, -7])  # Hamiltonian
     #H = np.diag([-2, 0, 1, -8, 0, 0, -5, -2])  # Hamiltonian
     #H = np.diag(np.random.randint(-5, 6, 2**visible_layer_size))  # Hamiltonian
@@ -33,15 +32,27 @@ if __name__ == '__main__':
 
     # Printing results
     print(f"Accept rate: {model.walker.average_acceptance()}")
-    print(f"Estimated energy: {model.estimate_energy()}")
+    #print(f"Estimated energy: {model.estimate_energy()}")
     print(f"Exact energy: {np.linalg.eigvalsh(H)}")
     print(f"Ground state: {np.linalg.eig(H)[1].T[0]}")
 
     fd_plot_list = model.gradient_descent(gradient_method='finite_difference', exact_dist=True)
-    #analytic_plot_list = model_copy.gradient_descent(gradient_method='analytical', exact_dist=False)
+
+    #fd_plot_list_mc = model.gradient_descent(gradient_method='finite_difference', exact_dist=False)
+    #analytic_plot_list = model.gradient_descent(gradient_method='analytical', exact_dist=True)
+    analytic_plot_list_mc = model_copy.gradient_descent(gradient_method='analytical', exact_dist=False)
+
+    print(f"Optimization time FD: {model.optimizing_time}")
+    print(f"Optimization time Analytic: {model_copy.optimizing_time}")
+    print(f"Estimated energy FD: {model.estimate_energy()}")
+    print(f"Estimated energy Analytic: {model_copy.estimate_energy()}")
+    print(f"Exact energies: {np.linalg.eigvalsh(H)}")
 
     plt.plot(np.real(fd_plot_list), label='Finite Difference')
-    #plt.plot(np.real(analytic_plot_list), label='Analytical')
+    ##plt.plot(np.real(analytic_plot_list), label='Analytical')
+    #plt.plot(np.real(fd_plot_list_mc), label='Finite Difference MC')
+    plt.plot(np.real(analytic_plot_list_mc), label='Analytical MC')
+
     plt.axhline(y=min(np.linalg.eigvalsh(H)), color='red', linestyle='--', label='Ground State')
     plt.title('Analytical vs finite difference gradient descent')
     plt.xlabel('Steps')
@@ -49,9 +60,7 @@ if __name__ == '__main__':
     plt.legend()
     plt.show()
 
-    print(f"Estimated energy FD: {model.estimate_energy()}")
-    print(f"Estimated energy Analytic: {model_copy.estimate_energy()}")
-    print(f"Exact energies: {np.linalg.eigvalsh(H)}")
+
 
 
 
