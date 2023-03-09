@@ -30,8 +30,6 @@ walker = Walker()
 rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
 model = Model(rbm, walker, H)  # Initializing model with RBM and Hamiltonian
 
-
-
 print(utils.get_matrix_off_diag_range(H))
 
 

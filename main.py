@@ -30,11 +30,13 @@ if __name__ == '__main__':
 
     # Printing results
     print(f"Accept rate: {model.walker.average_acceptance()}")
-    print(f"Estimated energy: {model.estimate_energy()}")
+    #print(f"Estimated energy: {model.estimate_energy()}")
     print(f"Exact energy: {np.linalg.eigvalsh(H)}")
 
     fd_plot_list = model.gradient_descent(gradient_method='finite_difference', exact_dist=True)
-    analytic_plot_list = model_copy.gradient_descent(gradient_method='analytical', exact_dist=True)
+    #fd_plot_list_mc = model.gradient_descent(gradient_method='finite_difference', exact_dist=False)
+    #analytic_plot_list = model.gradient_descent(gradient_method='analytical', exact_dist=True)
+    analytic_plot_list_mc = model_copy.gradient_descent(gradient_method='analytical', exact_dist=False)
 
     print(f"Optimization time FD: {model.optimizing_time}")
     print(f"Optimization time Analytic: {model_copy.optimizing_time}")
@@ -43,7 +45,10 @@ if __name__ == '__main__':
     print(f"Exact energies: {np.linalg.eigvalsh(H)}")
 
     plt.plot(np.real(fd_plot_list), label='Finite Difference')
-    plt.plot(np.real(analytic_plot_list), label='Analytical')
+    ##plt.plot(np.real(analytic_plot_list), label='Analytical')
+    #plt.plot(np.real(fd_plot_list_mc), label='Finite Difference MC')
+    plt.plot(np.real(analytic_plot_list_mc), label='Analytical MC')
+
     plt.axhline(y=min(np.linalg.eigvalsh(H)), color='red', linestyle='--', label='Ground State')
     plt.title('Analytical vs finite difference gradient descent')
     plt.xlabel('Steps')

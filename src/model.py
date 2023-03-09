@@ -19,7 +19,6 @@ class Model(object):
         self.walker = walker
         self.hamiltonian = hamiltonian
         self.off_diag = utils.get_matrix_off_diag_range(self.hamiltonian)
-        print(self.off_diag)
         self.data = get_config_file()['parameters']  # Load the config file
 
         self.optimizing_time = 0
@@ -158,7 +157,7 @@ class Model(object):
                 a = energy
                 print(f"Gradient descent step {i + 1}, energy: {energy}")
                 energy_landscape.append(energy)
-                # print(f"Gradient: {gradient(self, exact_dist)}")
+                #print(f"Gradient: {gradient(self, exact_dist)}")
                 if adam_optimization:
                     new_grads = adam(gradient(self, exact_dist))
                 else:

@@ -30,7 +30,7 @@ class FiniteDifference(object):
 
         return gradients
 
-    def finite_difference_step(self, index, param, exact_dist, h=1e-4):
+    def finite_difference_step(self, index, param, exact_dist, h=1e-2):
 
         if not exact_dist:
             function = self.model.estimate_energy
@@ -106,6 +106,7 @@ class AnalyticalGradient(object):
         omega_bar = self.omega_bar(distribution)
 
         g_j = 0
+
         for state in distribution:
             g_j += np.conjugate(self.model.local_energy(state)) * (self.omega(state) - omega_bar)
 
@@ -122,7 +123,7 @@ class AnalyticalGradient(object):
         """
 
         if dist is None:
-            distribution = self.model.etimate_distribution()
+            distribution = self.model.get_mcmc_states()
         else:
             distribution = dist
 
@@ -151,12 +152,14 @@ class AnalyticalGradient(object):
                 np.ndarray: The gradient of the parameters with respect to the energy of the state.
         """
         b_grad_r = b_grad_i = self._visible_bias_grads(state)
-        c_grad_r = self._hidden_bias_grads_r(state)
-        c_grad_i = self._hidden_bias_grads_i(state)
-        w_grad_r = self._weights_grads_r(state)
-        w_grad_i = self._weights_grads_i(state)
+        b_grad_i = b_grad_i * 1j
+        c_grad_r = c_grad_i = self._hidden_bias_grads(state)
+        c_grad_i = c_grad_i * 1j
+        w_grad_r = w_grad_i = self._weights_grads(state)
+        w_grad_i = w_grad_i * 1j
 
         return np.concatenate((b_grad_r, c_grad_r, w_grad_r.flatten(), b_grad_i, c_grad_i, w_grad_i.flatten()))
+
 
     def _visible_bias_grads(self, state) -> np.ndarray:
         """
@@ -170,34 +173,35 @@ class AnalyticalGradient(object):
         """
         return -1 * state
 
-    def _hidden_bias_grads_r(self, state) -> np.ndarray:
+    def _hidden_bias_grads(self, state) -> np.ndarray:
 
-        exponent_r = -(state @ self.model.rbm.W_r + self.model.rbm.c_r)
+        exponent_r = -(state @ (self.model.rbm.W_r + 1j * self.model.rbm.W_i)
+                       + (self.model.rbm.c_r + 1j * self.model.rbm.c_i))
         expression_r = np.exp(exponent_r)
         hidden_bias_grads_r = -(expression_r / (1 + expression_r))
 
         return np.asarray(hidden_bias_grads_r, dtype=complex)
 
-    def _hidden_bias_grads_i(self, state) -> np.ndarray:
-        exponent_i = -(state @ self.model.rbm.W_i + self.model.rbm.c_i)
-        expression_i = np.exp(exponent_i)
-        hidden_bias_grads_i = -(expression_i / (1 + expression_i))
+    # def _hidden_bias_grads_i(self, state) -> np.ndarray:
+    #     exponent_i = -(state @  (self.model.rbm.W_r + 1j * self.model.rbm.W_i) + self.model.rbm.c_i)
+    #     expression_i = np.exp(exponent_i)
+    #     hidden_bias_grads_i = -(expression_i / (1 + expression_i))
+    #
+    #     return np.asarray(hidden_bias_grads_i, dtype=complex)
 
-        return np.asarray(hidden_bias_grads_i, dtype=complex)
-
-    def _weights_grads_r(self, state) -> np.ndarray:
+    def _weights_grads(self, state) -> np.ndarray:
         _1 = -(state @ self.model.rbm.W_r + self.model.rbm.c_r)
         _2 = np.exp(_1) / (1 + np.exp(_1))
         weight_gradients = -1 * _2.reshape(-1, 1) @ state.reshape(1, -1)
 
         return np.asarray(weight_gradients, dtype=complex)
 
-    def _weights_grads_i(self, state) -> np.ndarray:
-        _1 = -(state @ self.model.rbm.W_i + self.model.rbm.c_i)
-        _2 = np.exp(_1) / (1 + np.exp(_1))
-        weight_gradients = -1 * _2.reshape(-1, 1) @ state.reshape(1, -1)
-
-        return np.asarray(weight_gradients, dtype=complex)
+    # def _weights_grads_i(self, state) -> np.ndarray:
+    #     _1 = -(state @ self.model.rbm.W_i + self.model.rbm.c_i)
+    #     _2 = np.exp(_1) / (1 + np.exp(_1))
+    #     weight_gradients = -1 * _2.reshape(-1, 1) @ state.reshape(1, -1)
+    #
+    #     return np.asarray(weight_gradients, dtype=complex)
 
     def plot_mcmc_vs_exact(self):
         from matplotlib import pyplot as plt
