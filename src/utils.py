@@ -48,7 +48,14 @@ def random_hamiltonian(size: int):
 
 
 def random_diagonal_hamiltonian(size: int, off_diagonal=0):
-    """Generate a random diagonal hamiltonian matrix of size n_qubits x n_qubits"""
+    """
+    Generate a random diagonal hamiltonian matrix of size n_qubits x n_qubits with off_diagonal elements.
+
+    :param size: Size of the hamiltonian matrix
+    :param off_diagonal: Number of off-diagonals above and below the main diagonal
+
+    :return: Diagonal hamiltonian matrix
+    """
     H = random_hamiltonian(size)
     diag_ham = -(H - np.triu(H, -off_diagonal) - np.tril(H, off_diagonal))
 

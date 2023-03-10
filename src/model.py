@@ -89,6 +89,12 @@ class Model(object):
                     h_ij = self.hamiltonian[i, j]
 
                     local_energy += h_ij * p_j / p_i
+        def l_e(state):
+            local_energy= 0
+            p_j = self.rbm.amplitude(utils.int_to_binary_array(j, state.size))
+            h_ij = self.hamiltonian[i, j]
+
+            local_energy += h_ij * p_j / p_i
 
         return local_energy
 
