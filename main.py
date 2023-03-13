@@ -4,6 +4,7 @@ from src.ansatz import RBM
 from src.mcmc import *
 from src.model import Model
 from src.utils import *
+from src.hamiltionians import Hamiltonian, IsingHamiltonian, DiagonalHamiltonian
 
 if __name__ == '__main__':
 
@@ -12,18 +13,13 @@ if __name__ == '__main__':
     hidden_layer_size = parameters['hidden_size']  # Number of hidden nodes
 
     seed = 44  # Seed for random number generator
-    #np.random.seed(seed)
+    np.random.seed(seed)
 
     b = random_complex_array(visible_layer_size)  # Visible layer bias
     c = random_complex_array(hidden_layer_size)  # Hidden layer bias
     W = random_complex_matrix(visible_layer_size, hidden_layer_size)  # Visible - hidden weights
 
-    H = random_hamiltonian(2**visible_layer_size)  # Hamiltonian
-    #H = random_diagonal_hamiltonian(2**visible_layer_size, 1)
-
-    #H = np.diag([-2, 0, -0, -7])  # Hamiltonian
-    #H = np.diag([-2, 0, 1, -8, 0, 0, -5, -2])  # Hamiltonian
-    #H = np.diag(np.random.randint(-5, 6, 2**visible_layer_size))  # Hamiltonian
+    H = IsingHamiltonian(2**visible_layer_size)
 
     walker = Walker()
     rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
@@ -37,10 +33,9 @@ if __name__ == '__main__':
     print(f"Ground state: {np.linalg.eig(H)[1].T[0]}")
 
     fd_plot_list = model.gradient_descent(gradient_method='finite_difference', exact_dist=True)
-
-    #fd_plot_list_mc = model.gradient_descent(gradient_method='finite_difference', exact_dist=False)
-    #analytic_plot_list = model.gradient_descent(gradient_method='analytical', exact_dist=True)
-    analytic_plot_list_mc = model_copy.gradient_descent(gradient_method='analytical', exact_dist=True)
+    fd_plot_list_mc = model.gradient_descent(gradient_method='finite_difference', exact_dist=False)
+    3#analytic_plot_list = model.gradient_descent(gradient_method='analytical', exact_dist=True)
+    analytic_plot_list_mc = model_copy.gradient_descent(gradient_method='analytical', exact_dist=False)
 
     print(f"Optimization time FD: {model.optimizing_time}")
     print(f"Optimization time Analytic: {model_copy.optimizing_time}")
@@ -49,9 +44,9 @@ if __name__ == '__main__':
     print(f"Exact energies: {np.linalg.eigvalsh(H)}")
 
     plt.plot(np.real(fd_plot_list), label='Finite Difference')
-    ##plt.plot(np.real(analytic_plot_list), label='Analytical')
-    #plt.plot(np.real(fd_plot_list_mc), label='Finite Difference MC')
-    plt.plot(np.real(analytic_plot_list_mc), label='Analytical MC')
+    #plt.plot(np.real(analytic_plot_list), label='Analytical')
+    plt.plot(np.real(fd_plot_list_mc), label='Finite Difference MC')
+    #plt.plot(np.real(analytic_plot_list_mc), label='Analytical MC')
 
     plt.axhline(y=min(np.linalg.eigvalsh(H)), color='red', linestyle='--', label='Ground State')
     plt.title('Analytical vs finite difference gradient descent')
@@ -59,10 +54,6 @@ if __name__ == '__main__':
     plt.ylabel('Energy')
     plt.legend()
     plt.show()
-
-
-
-
 
 
 

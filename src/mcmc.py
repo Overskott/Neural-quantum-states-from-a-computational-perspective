@@ -2,6 +2,7 @@ import copy
 import random
 import numpy as np
 from config_parser import get_config_file
+from src import utils
 
 
 class Walker(object):
@@ -58,7 +59,7 @@ class Walker(object):
     def random_walk(self, function):
 
         for i in range(self.steps):
-            self.hamming_step(self.hamming_distance)
+            self.next_state = utils.hamming_step(self.current_state, self.hamming_distance)
             self.walk_results.append(self.current_state)
 
             if self.acceptance_criterion(function):
@@ -70,7 +71,7 @@ class Walker(object):
 
     def burn_in_walk(self, function):
         for i in range(self.burn_in):
-            self.hamming_step(self.hamming_distance)
+            self.next_state = utils.hamming_step(self.current_state, self.hamming_distance)
 
             if self.acceptance_criterion(function):
                 self.current_state = copy.deepcopy(self.next_state)
@@ -82,7 +83,6 @@ class Walker(object):
 
     def acceptance_criterion(self, function) -> bool:
         u = random.uniform(0, 1)
-
         new_score = function(self.next_state)
         old_score = function(self.current_state)
 
@@ -90,17 +90,17 @@ class Walker(object):
 
         return score
 
-    def hamming_step(self, flips: int = 1) -> None:
-
-        used_indexes = []
-        for i in range(flips):
-            flip_index = random.randint(0, self.current_state.size-1) # minus 1?
-
-            while flip_index in used_indexes:
-                flip_index = random.randint(0, self.current_state.size-1)
-
-            used_indexes.append(flip_index)
-            self.next_state[flip_index] = 1 - self.next_state[flip_index]
-            #self.flip_bit(flip_index)
+    # def hamming_step(self, flips: int = 1) -> None:
+    #
+    #     used_indexes = []
+    #     for i in range(flips):
+    #         flip_index = random.randint(0, self.current_state.size-1) # minus 1?
+    #
+    #         while flip_index in used_indexes:
+    #             flip_index = random.randint(0, self.current_state.size-1)
+    #
+    #         used_indexes.append(flip_index)
+    #         self.next_state[flip_index] = 1 - self.next_state[flip_index]
+    #         #self.flip_bit(flip_index)
 
 

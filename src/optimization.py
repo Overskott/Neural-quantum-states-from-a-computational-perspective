@@ -4,7 +4,11 @@ from config_parser import get_config_file
 import src.utils as utils
 
 
-class FiniteDifference(object):
+class Optimizer(object):
+    pass
+
+
+class Gradient(object):
 
     def __init__(self):
 
@@ -20,6 +24,33 @@ class FiniteDifference(object):
         else:
             self.exact_dist = exact_dist
 
+        return self.find_gradients()
+
+    def find_gradients(self):
+        """Placeholder function"""
+        pass
+
+
+class FiniteDifference(Gradient):
+
+    def __init__(self):
+
+        super().__init__()
+        self.data = get_config_file()['parameters']  # Load the config file
+        self.model = None
+        self.exact_dist = None
+
+    def __call__(self, model, exact_dist=None):
+        self.model = model
+
+        if exact_dist is None:
+            self.exact_dist = self.data['exact_distribution']
+        else:
+            self.exact_dist = exact_dist
+
+        return self.finite_difference()
+
+    def find_gradients(self):
         return self.finite_difference()
 
     def finite_difference(self):

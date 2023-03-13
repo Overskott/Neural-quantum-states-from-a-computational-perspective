@@ -1,6 +1,7 @@
 from typing import List
 
 import numpy as np
+import random
 
 
 def random_array(size, mu=0, sigma=1):
@@ -47,6 +48,10 @@ def random_hamiltonian(size: int):
     return hamiltonian
 
 
+def random_gamma(size: int) -> np.ndarray:
+    return random_array(size, mu=0, sigma=1)
+
+
 def random_diagonal_hamiltonian(size: int, off_diagonal=0):
     """
     Generate a random diagonal hamiltonian matrix of size n_qubits x n_qubits with off_diagonal elements.
@@ -72,6 +77,35 @@ def get_matrix_off_diag_range(H):
         if np.count_nonzero(off_diag) == 0:
             return i
 
+
+def random_ising_hamiltonian(size: int):
+
+    n = size
+    gamma = np.random.normal(0, 1, n - 1)
+    # gamma = np.zeros(n-1) - 1
+    I = np.array([[1, 0], [0, 1]])
+    X = np.array([[0, 1], [1, 0]])
+    XX = np.kron(X, X)
+
+    H = 0
+    for i in range(n - 1):
+        h = None
+        if i != 0:
+            h = I
+
+        for j in range(i - 1):
+            h = np.kron(h, I)
+
+        if h is None:
+            h = XX
+        else:
+            h = np.kron(h, XX)
+
+        for j in range(i + 2, n):
+            h = np.kron(h, I)
+        H += gamma[i] * h
+
+    return H
 
 def generate_positive_ground_state_hamiltonian(n_qubits: int):
     size = 2**n_qubits
@@ -100,29 +134,39 @@ def generate_positive_ground_state_hamiltonian(n_qubits: int):
 
 
 def int_to_binary_array(value, length):
-    value = int(value)
-    binary = format(value, 'b')
-    bit_array = np.zeros(length, dtype='i4')
+    binary_string = format(int(value), 'b').zfill(length)
+    binary_array = [int(bit) for bit in binary_string[::-1]]
 
-    for i, c in enumerate(binary[::-1]):
-        bit_array[i] = int(c)
-
-    return np.flip(bit_array)  # Flipping (reversing) to return in 'least significant bit' format
+    return np.flip(np.asarray(binary_array))  # Flipping (reversing) to return in 'least significant bit' format
 
 
 def binary_array_to_int(binary_array):
     """Updated the self.value value based on the bit_array value"""
-    value = 0
-
-    for i, bit in enumerate(np.flip(binary_array)):
-        value += bit * 2 ** i
+    value = sum([bit * 2 ** i for (i, bit) in enumerate(np.flip(binary_array))])
 
     return int(value)
 
 
-def flip_bit(state: np.ndarray , index: int):
+def flip_bit(state: np.ndarray, index: int):
     """Flips (0->1 or 1->0) the bit on given index of the state"""
     state[index] = 1 - state[index]
+
+
+def hamming_step(binary_array: np.ndarray, flips: int = 1) -> np.ndarray:
+
+    new_array = binary_array.copy()
+    used_indexes = []
+    for i in range(flips):
+        flip_index = random.randint(0, binary_array.size-1) # minus 1?
+
+        while flip_index in used_indexes:
+            flip_index = random.randint(0, binary_array.size-1)
+
+        used_indexes.append(flip_index)
+
+        new_array[flip_index] = 1 - binary_array[flip_index]
+
+    return new_array
 
 
 def normal_distribution(x) -> float:

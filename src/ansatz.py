@@ -52,13 +52,13 @@ class RBM(object):
 
         self.state = utils.random_binary_array(2**self.visible_size)
 
-    def set_visible(self, state):
-        self.state = state
+    #def set_visible(self, state):
+    #    self.state = state
 
     def get_parameters_as_array(self):
         """Creates a variable array from the RBM variables"""
-        real_part = np.concatenate((self.b_r, self.c_r, self.W_r.flatten()))  # Flattening the weights matrix
-        imag_part = np.concatenate((self.b_i, self.c_i, self.W_i.flatten()))  # Flattening the weights matrix
+        real_part = np.concatenate((self.b_r, self.c_r, self.W_r.flatten()))
+        imag_part = np.concatenate((self.b_i, self.c_i, self.W_i.flatten()))
 
         return np.concatenate((real_part, imag_part))
 
@@ -125,30 +125,20 @@ class RBM(object):
                 column = w_index % h_size
 
                 self.W_i[row, column] = value
-    #
-    # def set_visible_bias(self, b):
-    #     self.b = b
-    #
-    # def set_hidden_bias(self, c):
-    #     self.c = c
-    #
-    # def set_weights(self, W):
-    #     self.W = W
 
     def probability(self, state: np.ndarray) -> float:
         """ Calculates the probability of finding the RBM in state s """
-
         return np.abs(self.amplitude(state)) ** 2
 
     def amplitude(self, state: np.ndarray) -> float:
         """ Calculates the amplitude of finding the RBM in state s """
+
         product = 1
         b = self.b_r+1j*self.b_i
         c = self.c_r+1j*self.c_i
         W = self.W_r+1j*self.W_i
 
         for i in range(self.hidden_size):
-
             scalar = -(W[:, i] @ state + c[i])
             product *= (1 + np.exp(scalar))
 
