@@ -77,7 +77,7 @@ class RBM(object):
         dim_0, dim_1 = np.shape(self.W_r)  # dim_0 visible layer, dim_1 hidden layer
 
         if len(x_r) != dim_0 * dim_1 + dim_0 + dim_1:
-            raise ValueError("Array myst be of correct size.")
+            raise ValueError("Array myst be of correct n.")
 
         self.b_r = x_r[:self.visible_size]
         self.c_r = x_r[self.visible_size:self.visible_size + self.hidden_size]
@@ -139,6 +139,8 @@ class RBM(object):
         W = self.W_r+1j*self.W_i
 
         for i in range(self.hidden_size):
+            print(f"w: {W[:, i]}")
+            print(f"state: {state}")
             scalar = -(W[:, i] @ state + c[i])
             product *= (1 + np.exp(scalar))
 

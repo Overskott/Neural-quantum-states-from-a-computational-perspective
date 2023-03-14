@@ -38,7 +38,7 @@ def random_symmetric_matrix(size, mu=-1, sigma=1):
 
 
 def random_hamiltonian(size: int):
-    """Generate a random hamiltonian matrix of size n_qubits x n_qubits"""
+    """Generate a random hamiltonian matrix of n n_qubits x n_qubits"""
     re = np.random.normal(0, 1, (size, size))
     im = np.random.normal(0, 1, (size, size)) * 1j
     ginibre = re + im
@@ -54,7 +54,7 @@ def random_gamma(size: int) -> np.ndarray:
 
 def random_diagonal_hamiltonian(size: int, off_diagonal=0):
     """
-    Generate a random diagonal hamiltonian matrix of size n_qubits x n_qubits with off_diagonal elements.
+    Generate a random diagonal hamiltonian matrix of n n_qubits x n_qubits with off_diagonal elements.
 
     :param size: Size of the hamiltonian matrix
     :param off_diagonal: Number of off-diagonals above and below the main diagonal

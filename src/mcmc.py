@@ -94,10 +94,10 @@ class Walker(object):
     #
     #     used_indexes = []
     #     for i in range(flips):
-    #         flip_index = random.randint(0, self.current_state.size-1) # minus 1?
+    #         flip_index = random.randint(0, self.current_state.n-1) # minus 1?
     #
     #         while flip_index in used_indexes:
-    #             flip_index = random.randint(0, self.current_state.size-1)
+    #             flip_index = random.randint(0, self.current_state.n-1)
     #
     #         used_indexes.append(flip_index)
     #         self.next_state[flip_index] = 1 - self.next_state[flip_index]

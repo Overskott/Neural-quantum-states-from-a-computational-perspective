@@ -19,7 +19,7 @@ if __name__ == '__main__':
     c = random_complex_array(hidden_layer_size)  # Hidden layer bias
     W = random_complex_matrix(visible_layer_size, hidden_layer_size)  # Visible - hidden weights
 
-    H = IsingHamiltonian(2**visible_layer_size)
+    H = IsingHamiltonian(visible_layer_size)
 
     walker = Walker()
     rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
     fd_plot_list = model.gradient_descent(gradient_method='finite_difference', exact_dist=True)
     fd_plot_list_mc = model.gradient_descent(gradient_method='finite_difference', exact_dist=False)
-    3#analytic_plot_list = model.gradient_descent(gradient_method='analytical', exact_dist=True)
+    #analytic_plot_list = model.gradient_descent(gradient_method='analytical', exact_dist=True)
     analytic_plot_list_mc = model_copy.gradient_descent(gradient_method='analytical', exact_dist=False)
 
     print(f"Optimization time FD: {model.optimizing_time}")
