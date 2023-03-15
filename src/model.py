@@ -4,7 +4,7 @@ from typing import List
 
 from config_parser import get_config_file
 from src.ansatz import RBM
-from src.hamiltionians import Hamiltonian, IsingHamiltonian, DiagonalHamiltonian
+from src.hamiltonians import Hamiltonian, IsingHamiltonian, ReducedIsingHamiltonian, DiagonalHamiltonian
 from src.mcmc import Walker
 import src.utils as utils
 import numpy as np
@@ -14,12 +14,12 @@ from src.optimization import Adam, FiniteDifference, AnalyticalGradient
 
 class Model(object):
 
-    def __init__(self, rbm: RBM, walker: Walker, hamiltonian: Hamiltonian):
+    def __init__(self, rbm: RBM = None, walker: Walker = None, hamiltonian: Hamiltonian = None):
 
         self.rbm = rbm
         self.walker = walker
         self.hamiltonian = hamiltonian
-        self.off_diag = utils.get_matrix_off_diag_range(self.hamiltonian)
+        #self.off_diag = utils.get_matrix_off_diag_range(self.hamiltonian)
         self.data = get_config_file()['parameters']  # Load the config file
 
         self.optimizing_time = 0
@@ -40,7 +40,7 @@ class Model(object):
 
     def get_wave_function(self):
         dist = self.get_all_states()
-        amp_list = np.asarray([self.rbm.amplitude(state) for state in dist])
+        amp_list = self.rbm.amplitude(dist)
         norm = np.sqrt(sum(np.abs(amp_list)**2))
 
         return amp_list / norm
@@ -63,6 +63,7 @@ class Model(object):
 
         return np.real(sum(probability_list * local_energy_list))
 
+    @profile
     def estimate_energy(self, dist: List[np.ndarray] = None) -> float:
         if dist is None:
             distribution = self.get_mcmc_states()
@@ -77,10 +78,10 @@ class Model(object):
         #result = energy / len(distribution)
 
         if type(self.hamiltonian) == IsingHamiltonian:
-            if self.hamiltonian.shape[0] == self.hamiltonian.shape[1]:
-                result = np.linalg.eig(self.hamiltonian)[1].T[0]
-            else:
-                result = sum([self.ising_local_energy(state) for state in distribution]) / len(distribution)
+            result = np.linalg.eig(self.hamiltonian)[1].T[0]
+            return np.real(result)
+        elif type(self.hamiltonian) == ReducedIsingHamiltonian:
+            result = sum([self.ising_local_energy(state) for state in distribution]) / len(distribution)
             return np.real(result)
         elif type(self.hamiltonian) == DiagonalHamiltonian:
             result = sum([self.local_energy(state) for state in distribution]) / len(distribution)
@@ -91,11 +92,12 @@ class Model(object):
 
             return np.real(result)
 
-    def local_energy(self, state: np.ndarray) -> complex:
+    @profile
+    def local_energy(self, dist: np.ndarray) -> complex:
         """Calculates the local energy of the RBM in state s"""
 
-        i = utils.binary_array_to_int(state)
-        p_i = self.rbm.amplitude(state)
+        i = [utils.binary_array_to_int(state) for state in dist]
+        p_i = self.rbm.amplitude(dist)
 
         local_energy = 0
 
@@ -103,12 +105,19 @@ class Model(object):
         hamiltonian_size = H.shape[0]
 
         def eloc_index_value(index_1, index_2):
-            p_j = self.rbm.amplitude(utils.int_to_binary_array(index_2, state.size))
+
+            i = [utils.binary_array_to_int(state) for state in dist]
+            p_i = self.rbm.amplitude(dist)
+
+            j = np.asarray([utils.int_to_binary_array(j, self.rbm.visible_size)for j
+                            in range(hamiltonian_size)])
+            p_j = self.rbm.amplitude(j)
+
             h_ij = self.hamiltonian[index_1, index_2]
             return h_ij * p_j / p_i
 
         if type(self.hamiltonian) == DiagonalHamiltonian:
-            for j in range(self.off_diag, - self.off_diag - 1, -1):
+            for j in range(self.hamiltonian.diagonal(), - self.hamiltonian.diagonal() - 1, -1):
                 j = i + j
 
                 if j < 0 or j >= hamiltonian_size-1:  # If the j index is out of bounds skip calculation
@@ -120,8 +129,9 @@ class Model(object):
 
         return local_energy
 
+    @DeprecationWarning
     def is_diagonal(self):
-        if self.off_diag + 1 - self.hamiltonian.size == 0:
+        if self.hamiltonian.diagonal() + 1 - self.hamiltonian.size == 0:
             return True
         else:
             return False
@@ -150,6 +160,7 @@ class Model(object):
 
         return local_energy
 
+    @profile
     def gradient_descent(self,
                          gradient_method=None,
                          learning_rate=None,
@@ -197,10 +208,7 @@ class Model(object):
 
         for i in range(n_steps):
             try:
-                b = a
-
-                energy = self.exact_energy(self.get_all_states())
-                a = energy
+                energy = self.exact_energy()
                 print(f"Gradient descent step {i + 1}, energy: {energy}")
                 energy_landscape.append(energy)
                 #print(f"Gradient: {gradient(self, exact_dist)}")
@@ -215,10 +223,6 @@ class Model(object):
 
             except KeyboardInterrupt:
                 print("Gradient descent interrupted")
-                break
-
-            if termination_condition > abs(b - a):
-                print("Termination condition reached")
                 break
 
         self.optimizing_time = time.time() - start

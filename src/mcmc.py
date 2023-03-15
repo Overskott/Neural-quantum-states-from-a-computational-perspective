@@ -56,10 +56,11 @@ class Walker(object):
 
         self.random_walk(function)
 
+    @profile
     def random_walk(self, function):
 
         for i in range(self.steps):
-            self.next_state = utils.hamming_step(self.current_state, self.hamming_distance)
+            self.next_state = utils.hamming_step(self.current_state)
             self.walk_results.append(self.current_state)
 
             if self.acceptance_criterion(function):
@@ -71,7 +72,7 @@ class Walker(object):
 
     def burn_in_walk(self, function):
         for i in range(self.burn_in):
-            self.next_state = utils.hamming_step(self.current_state, self.hamming_distance)
+            self.next_state = utils.hamming_step(self.current_state)
 
             if self.acceptance_criterion(function):
                 self.current_state = copy.deepcopy(self.next_state)
@@ -81,6 +82,7 @@ class Walker(object):
     def average_acceptance(self):
         return self.acceptance_rate / self.steps
 
+    @profile
     def acceptance_criterion(self, function) -> bool:
         u = random.uniform(0, 1)
         new_score = function(self.next_state)

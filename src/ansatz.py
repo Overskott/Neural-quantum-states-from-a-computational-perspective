@@ -52,9 +52,6 @@ class RBM(object):
 
         self.state = utils.random_binary_array(2**self.visible_size)
 
-    #def set_visible(self, state):
-    #    self.state = state
-
     def get_parameters_as_array(self):
         """Creates a variable array from the RBM variables"""
         real_part = np.concatenate((self.b_r, self.c_r, self.W_r.flatten()))
@@ -126,11 +123,12 @@ class RBM(object):
 
                 self.W_i[row, column] = value
 
-    def probability(self, state: np.ndarray) -> float:
+    def probability(self, dist: np.ndarray) -> float:
         """ Calculates the probability of finding the RBM in state s """
-        return np.abs(self.amplitude(state)) ** 2
+        return np.abs(self.amplitude(dist)) ** 2
 
-    def amplitude(self, state: np.ndarray) -> float:
+    @profile
+    def amplitude_single(self, state: np.ndarray) -> float:
         """ Calculates the amplitude of finding the RBM in state s """
 
         product = 1
@@ -139,8 +137,6 @@ class RBM(object):
         W = self.W_r+1j*self.W_i
 
         for i in range(self.hidden_size):
-            print(f"w: {W[:, i]}")
-            print(f"state: {state}")
             scalar = -(W[:, i] @ state + c[i])
             product *= (1 + np.exp(scalar))
 
@@ -150,9 +146,22 @@ class RBM(object):
 
         return amp
 
+    @profile
+    def amplitude(self, distribution: np.ndarray) -> float:
+        """ Calculates the amplitude of finding the RBM in state s """
 
+        D = distribution
 
+        product = 1
+        b = self.b_r + 1j * self.b_i
+        c = self.c_r + 1j * self.c_i
+        W = self.W_r + 1j * self.W_i
 
+        M = -(W.T @ D + c)
+        np.prod(1 + np.exp(M), axis=0)
+        bias = np.exp(np.transpose(b) @ D)
 
+        amp = product * bias
 
+        return amp
 

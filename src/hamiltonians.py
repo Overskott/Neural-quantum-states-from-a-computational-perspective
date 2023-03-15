@@ -18,7 +18,15 @@ class Hamiltonian(np.ndarray):
 class IsingHamiltonian(Hamiltonian):
 
     def __new__(cls, n):
-        ih = utils.random_ising_hamiltonian(2 ** n)
+        ih = utils.random_ising_hamiltonian(n)
+        obj = np.asarray(ih).view(cls)
+        return obj
+
+
+class ReducedIsingHamiltonian(Hamiltonian):
+
+    def __new__(cls, n):
+        ih = utils.random_gamma(n)
         obj = np.asarray(ih).view(cls)
         return obj
 
@@ -26,6 +34,10 @@ class IsingHamiltonian(Hamiltonian):
 class DiagonalHamiltonian(Hamiltonian):
 
     def __new__(cls, n, diagonal=0):
-        dh = utils.random_diagonal_hamiltonian(2**n, diagonal)
+        dh = utils.random_diagonal_hamiltonian(2 ** n, diagonal)
         obj = np.asarray(dh).view(cls)
         return obj
+
+    def __init__(self, n, diagonal=0):
+        super().__init__(n)
+        self.diagonal = diagonal

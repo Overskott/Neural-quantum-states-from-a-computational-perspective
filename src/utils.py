@@ -1,3 +1,4 @@
+import time
 from typing import List
 
 import numpy as np
@@ -152,7 +153,15 @@ def flip_bit(state: np.ndarray, index: int):
     state[index] = 1 - state[index]
 
 
-def hamming_step(binary_array: np.ndarray, flips: int = 1) -> np.ndarray:
+def hamming_step(binary_array: np.ndarray) -> np.ndarray:
+
+    new_array = binary_array.copy()
+    flip_index = random.randint(0, binary_array.size-1) # minus 1?
+    new_array[flip_index] = 1 - binary_array[flip_index]
+
+    return new_array
+
+def hamming_steps(binary_array: np.ndarray, flips: int = 1) -> np.ndarray:
 
     new_array = binary_array.copy()
     used_indexes = []
@@ -167,6 +176,13 @@ def hamming_step(binary_array: np.ndarray, flips: int = 1) -> np.ndarray:
         new_array[flip_index] = 1 - binary_array[flip_index]
 
     return new_array
+
+
+def time_function(f, *args, **kwargs):
+    start = time.process_time()
+    f(*args, **kwargs)
+    end = time.process_time()
+    return end - start
 
 
 def normal_distribution(x) -> float:

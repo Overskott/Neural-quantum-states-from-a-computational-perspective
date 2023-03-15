@@ -7,7 +7,7 @@ import numpy as np
 from config_parser import get_config_file
 from src import utils
 from src.ansatz import RBM
-from src.hamiltionians import Hamiltonian, IsingHamiltonian, DiagonalHamiltonian
+from src.hamiltonians import Hamiltonian, IsingHamiltonian, ReducedIsingHamiltonian, DiagonalHamiltonian
 from src.mcmc import Walker
 from src.model import Model
 from src.utils import *
@@ -25,18 +25,12 @@ b = random_complex_array(visible_layer_size)  # Visible layer bias
 c = random_complex_array(hidden_layer_size)  # Hidden layer bias
 W = random_complex_matrix(visible_layer_size, hidden_layer_size)  # Visible - hidden weights
 
-gamma = random_gamma(visible_layer_size)
+H = IsingHamiltonian(visible_layer_size)
 
 walker = Walker()
 rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
-model = Model(rbm, walker, gamma)  # Initializing model with RBM and Hamiltonian
+model = Model(rbm, walker, H)  # Initializing model with RBM and Hamiltonian
 
-h = Hamiltonian(2**visible_layer_size)
+gamma = utils.random_gamma(visible_layer_size)
 
-print(h)
-print(type(h))
-
-ih = IsingHamiltonian(2**visible_layer_size)
-dh = DiagonalHamiltonian(2**visible_layer_size, 2)
-print(type(ih) == IsingHamiltonian)
-print(dh)
+h = ReducedIsingHamiltonian()
