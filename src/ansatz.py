@@ -123,12 +123,14 @@ class RBM(object):
 
                 self.W_i[row, column] = value
 
-    def probability(self, dist: np.ndarray) -> float:
-        """ Calculates the probability of finding the RBM in state s """
-        return np.abs(self.amplitude(dist)) ** 2
 
-    ##@profile
-    def amplitude_single(self, state: np.ndarray) -> np.ndarray:
+
+    def probability(self, state: np.ndarray) -> float:
+        """ Calculates the probability of finding the RBM in state s """
+        return np.abs(self.amplitude(state)) ** 2
+
+    #@profile
+    def amplitude(self, state: np.ndarray) -> np.ndarray:
         """ Calculates the amplitude of finding the RBM in state s """
 
         product = 1
@@ -146,21 +148,21 @@ class RBM(object):
 
         return amp
 
+    def probability_fast(self, dist: np.ndarray) -> float:
+        """ Calculates the probability of finding the RBM in state s """
+        return np.abs(self.amplitude_fast(dist)) ** 2
+
     #@profile
-    def amplitude(self, distribution: np.ndarray) -> np.ndarray:
+    def amplitude_fast(self, distribution: np.ndarray) -> np.ndarray:
         """ Calculates the amplitude of finding the RBM in state s """
 
         D = distribution
-
 
         product = 1
         b = self.b_r + 1j * self.b_i
         c = (self.c_r + 1j * self.c_i).reshape(-1, 1)
         W = self.W_r + 1j * self.W_i
 
-        print(f"D shape: {np.shape(D)}")
-        print(f"W shape: {np.shape(W)}")
-        print(f"c shape: {np.shape(c)}")
         M = -(W @ D.T + c)
         np.prod(1 + np.exp(M), axis=0)
         bias = np.exp(np.transpose(b) @ D.T)

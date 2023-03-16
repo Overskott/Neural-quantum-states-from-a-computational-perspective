@@ -69,15 +69,9 @@ class Model(object):
             distribution = self.get_mcmc_states()
         else:
             distribution = dist
-        #energy = 0
-
-        #for state in distribution:
-
-           # energy += self.local_energy(state)
-
-        #result = energy / len(distribution)
 
         if type(self.hamiltonian) == IsingHamiltonian:
+            print("Ising Hamiltonian")
             result = np.linalg.eig(self.hamiltonian)[1].T[0]
             return np.real(result)
         elif type(self.hamiltonian) == ReducedIsingHamiltonian:
@@ -86,40 +80,45 @@ class Model(object):
         elif type(self.hamiltonian) == DiagonalHamiltonian:
             result = sum([self.local_energy(state) for state in distribution]) / len(distribution)
             return np.real(result)
-
         else:
+            print("General Hamiltonian")
             result = sum([self.local_energy(state) for state in distribution]) / len(distribution)
 
             return np.real(result)
 
-    #@profile
-    def local_energy_fast(self, dist: np.ndarray) -> complex:
+    def estimate_energy_fast(self, dist: List[np.ndarray] = None) -> float:
+        if dist is None:
+            distribution = self.get_mcmc_states()
+        else:
+            distribution = dist
+
+        # if type(self.hamiltonian) == IsingHamiltonian:
+        #     result = np.linalg.eig(self.hamiltonian)[1].T[0]
+        #     return np.real(result)
+        # elif type(self.hamiltonian) == ReducedIsingHamiltonian:
+        #     result = sum([self.ising_local_energy(state) for state in distribution]) / len(distribution)
+        #     return np.real(result)
+        # elif type(self.hamiltonian) == DiagonalHamiltonian:
+        #     result = sum([self.local_energy(state) for state in distribution]) / len(distribution)
+        #     return np.real(result)
+        # else:
+        #     result = sum([self.local_energy(state) for state in distribution]) / len(distribution)
+
+        return np.real(self.local_energy_fast(distribution)/len(distribution))
+
+    def local_energy(self, state: np.ndarray) -> complex:
         """Calculates the local energy of the RBM in state s"""
 
-        i = [utils.binary_array_to_int(state) for state in dist]
-        j = self.get_all_states()
-        p_i = self.rbm.amplitude(dist)
-        p_j = self.rbm.amplitude(j)
-
-        for index, onehot in enumerate(i):
-            el_i = H[:] * p_i[:index]
-
-        local_energy = 0
-
-        H = self.hamiltonian
-        hamiltonian_size = H.shape[0]
-
         def eloc_index_value(index_1, index_2):
-
-            i = [utils.binary_array_to_int(state) for state in dist]
-            p_i = self.rbm.amplitude(dist)
-
-            j = np.asarray([utils.int_to_binary_array(j, self.rbm.visible_size)for j
-                            in range(hamiltonian_size)])
-            p_j = self.rbm.amplitude(j)
-
+            p_j = self.rbm.amplitude(utils.int_to_binary_array(index_2, state.size))
             h_ij = self.hamiltonian[index_1, index_2]
             return h_ij * p_j / p_i
+
+        i = utils.binary_array_to_int(state)
+        p_i = self.rbm.amplitude_fast(state)
+        local_energy = 0
+        H = self.hamiltonian
+        hamiltonian_size = H.shape[0]
 
         if type(self.hamiltonian) == DiagonalHamiltonian:
             for j in range(self.hamiltonian.diagonal(), - self.hamiltonian.diagonal() - 1, -1):
@@ -131,6 +130,39 @@ class Model(object):
                     local_energy += eloc_index_value(i, j)
         else:
             local_energy = sum([eloc_index_value(i, j) for j in range(hamiltonian_size)])
+
+        return local_energy
+
+    #@profile
+    def local_energy_fast(self, dist: np.ndarray) -> complex:
+        """Calculates the local energy of the RBM in state s"""
+
+        i = [utils.binary_array_to_int(state) for state in dist]
+        j = self.get_all_states()
+
+        d_1 = len(dist)
+        d_2 = 2 ** len(dist[0])
+
+        M = np.zeros((d_1, d_2), dtype=int)
+        J = np.zeros((d_2, d_2), dtype=int)
+
+        # create matrix with onehot states
+        for (row, col) in enumerate(i):
+
+            M[row, col] = 1
+
+        for (row, col) in enumerate(j):
+
+            J[row, col] = 1
+
+        local_energy = 0
+        p_i = self.rbm.probability_fast(dist)
+
+        for j, int_state in enumerate(M):
+            p_j = self.rbm.probability_fast(self.get_all_states())
+            h_ij = int_state @ self.hamiltonian @ J
+
+            local_energy += sum(h_ij * p_i[j] / p_j)
 
         return local_energy
 
