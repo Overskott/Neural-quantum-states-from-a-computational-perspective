@@ -178,6 +178,14 @@ def hamming_steps(binary_array: np.ndarray, flips: int = 1) -> np.ndarray:
     return new_array
 
 
+def one_hot_matrix(dist: np.array):
+    d_1 = len(dist)
+    d_2 = len(dist[0])
+    i = [binary_array_to_int(state) for state in dist]
+
+    M = np.zeros(d_1, d_2)
+
+
 def time_function(f, *args, **kwargs):
     start = time.process_time()
     f(*args, **kwargs)

@@ -56,7 +56,7 @@ class Walker(object):
 
         self.random_walk(function)
 
-    @profile
+    #@profile
     def random_walk(self, function):
 
         for i in range(self.steps):
@@ -82,7 +82,7 @@ class Walker(object):
     def average_acceptance(self):
         return self.acceptance_rate / self.steps
 
-    @profile
+    #@profile
     def acceptance_criterion(self, function) -> bool:
         u = random.uniform(0, 1)
         new_score = function(self.next_state)

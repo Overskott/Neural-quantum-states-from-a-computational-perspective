@@ -14,7 +14,7 @@ from src.utils import *
 
 
 seed = 44  # Seed for random number generator
-#np.random.seed(seed)
+np.random.seed(seed)
 
 parameters = get_config_file()['parameters']
 
@@ -25,12 +25,42 @@ b = random_complex_array(visible_layer_size)  # Visible layer bias
 c = random_complex_array(hidden_layer_size)  # Hidden layer bias
 W = random_complex_matrix(visible_layer_size, hidden_layer_size)  # Visible - hidden weights
 
-H = IsingHamiltonian(visible_layer_size)
+H = random_matrix(2**visible_layer_size, 2**visible_layer_size)
 
 walker = Walker()
 rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currently with random configuration and parameters
 model = Model(rbm, walker, H)  # Initializing model with RBM and Hamiltonian
+dist = np.array([[0, 1], [1, 1], [1, 0], [1, 1], [0, 1], [0, 0], [1, 0], [1, 1]])
 
-gamma = utils.random_gamma(visible_layer_size)
+d_1 = len(dist)
+d_2 = 2**len(dist[0])
+print(f"d_1: {d_1}, d_2: {d_2}")
 
-h = ReducedIsingHamiltonian()
+i = [binary_array_to_int(state) for state in dist]
+print(i)
+
+M = np.zeros((d_1, d_2), dtype=int)
+
+print(f"hamiltonian: {H}")
+
+# create matrix with onehot states
+for (row, col) in enumerate(i):
+    print(row, col)
+    M[row, col] = 1
+
+
+J = np.eye(d_2)
+
+local_energy = 0
+p_i = model.rbm.probability(dist)
+for j, int_state in enumerate(M):
+
+    p_j = model.rbm.probability(model.get_all_states())
+    h_ij = int_state @ H @ J
+    print(f"h_ij shape: {h_ij.shape}")
+    print(f"p_i shape: {p_i.shape}")
+    print(f"p_j shape: {p_j.shape}")
+
+    local_energy += sum(h_ij * p_i[j] / p_j)
+
+print(local_energy)

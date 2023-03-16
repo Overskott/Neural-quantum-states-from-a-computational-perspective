@@ -53,7 +53,7 @@ class FiniteDifference(Gradient):
     def find_gradients(self):
         return self.finite_difference()
 
-    @profile
+    #@profile
     def finite_difference(self):
         gradients = np.zeros(len(self.model.rbm.get_parameters_as_array()))
 
@@ -62,7 +62,7 @@ class FiniteDifference(Gradient):
 
         return gradients
 
-    @profile
+    #@profile
     def finite_difference_step(self, index, param, exact_dist):
         h = 1/np.sqrt(self.data['walker_steps'])*4
 

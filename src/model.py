@@ -63,7 +63,7 @@ class Model(object):
 
         return np.real(sum(probability_list * local_energy_list))
 
-    @profile
+    #@profile
     def estimate_energy(self, dist: List[np.ndarray] = None) -> float:
         if dist is None:
             distribution = self.get_mcmc_states()
@@ -92,12 +92,17 @@ class Model(object):
 
             return np.real(result)
 
-    @profile
-    def local_energy(self, dist: np.ndarray) -> complex:
+    #@profile
+    def local_energy_fast(self, dist: np.ndarray) -> complex:
         """Calculates the local energy of the RBM in state s"""
 
         i = [utils.binary_array_to_int(state) for state in dist]
+        j = self.get_all_states()
         p_i = self.rbm.amplitude(dist)
+        p_j = self.rbm.amplitude(j)
+
+        for index, onehot in enumerate(i):
+            el_i = H[:] * p_i[:index]
 
         local_energy = 0
 
@@ -160,7 +165,7 @@ class Model(object):
 
         return local_energy
 
-    @profile
+    #@profile
     def gradient_descent(self,
                          gradient_method=None,
                          learning_rate=None,
