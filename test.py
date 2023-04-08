@@ -50,6 +50,7 @@ for state in dist:
 print(le)
 
 print(model.local_energy_fast(dist))
+
 # create matrix with onehot states
 # for (row, col) in enumerate(i):
 #     print(row, col)

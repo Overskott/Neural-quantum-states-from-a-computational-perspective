@@ -161,6 +161,7 @@ def hamming_step(binary_array: np.ndarray) -> np.ndarray:
 
     return new_array
 
+
 def hamming_steps(binary_array: np.ndarray, flips: int = 1) -> np.ndarray:
 
     new_array = binary_array.copy()

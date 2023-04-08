@@ -71,7 +71,7 @@ class Model(object):
             distribution = dist
 
         if type(self.hamiltonian) == IsingHamiltonian:
-            print("Ising Hamiltonian")
+
             result = np.linalg.eig(self.hamiltonian)[1].T[0]
             return np.real(result)
         elif type(self.hamiltonian) == ReducedIsingHamiltonian:
@@ -81,7 +81,7 @@ class Model(object):
             result = sum([self.local_energy(state) for state in distribution]) / len(distribution)
             return np.real(result)
         else:
-            print("General Hamiltonian")
+
             result = sum([self.local_energy(state) for state in distribution]) / len(distribution)
 
             return np.real(result)
@@ -115,7 +115,7 @@ class Model(object):
             return h_ij * p_j / p_i
 
         i = utils.binary_array_to_int(state)
-        p_i = self.rbm.amplitude_fast(state)
+        p_i = self.rbm.amplitude(state)
         local_energy = 0
         H = self.hamiltonian
         hamiltonian_size = H.shape[0]
@@ -138,28 +138,26 @@ class Model(object):
         """Calculates the local energy of the RBM in state s"""
 
         i = [utils.binary_array_to_int(state) for state in dist]
-        j = self.get_all_states()
+        all_states = self.get_all_states()
 
         d_1 = len(dist)
         d_2 = 2 ** len(dist[0])
 
         M = np.zeros((d_1, d_2), dtype=int)
-        J = np.zeros((d_2, d_2), dtype=int)
 
         # create matrix with onehot states
         for (row, col) in enumerate(i):
-
             M[row, col] = 1
 
-        for (row, col) in enumerate(j):
-
-            J[row, col] = 1
+        #for (row, col) in enumerate(j):
+        #    J[row, col] = 1
+        J = np.eye(d_2)
 
         local_energy = 0
         p_i = self.rbm.probability_fast(dist)
 
         for j, int_state in enumerate(M):
-            p_j = self.rbm.probability_fast(self.get_all_states())
+            p_j = self.rbm.probability_fast(all_states)
             h_ij = int_state @ self.hamiltonian @ J
 
             local_energy += sum(h_ij * p_i[j] / p_j)
@@ -265,6 +263,38 @@ class Model(object):
         self.optimizing_time = time.time() - start
 
         return energy_landscape
+
+    @DeprecationWarning
+    def local_energy_2(self, state: np.ndarray) -> float:
+        """Calculates the local energy of the RBM in state s"""
+
+        i = utils.binary_array_to_int(state)
+        p_i = self.rbm.amplitude(state)
+        local_energy = 0
+        H = self.hamiltonian
+        hamiltonian_size = H.shape[0]
+
+        for j in range(hamiltonian_size):
+            p_j = self.rbm.amplitude(utils.int_to_binary_array(j, state.size))
+            h_ij = self.hamiltonian[i, j]
+
+            local_energy += h_ij * p_j / p_i
+
+        if True:
+            pass
+        else:
+            for j in range(self.off_diag, -self.off_diag - 1, -1):
+                j = i + j
+
+                if j < 0 or j >= 2 ** state.size:  # If the j index is out of bounds skip calculation
+                    continue
+                else:
+                    p_j = self.rbm.amplitude(utils.int_to_binary_array(j, state.size))
+                    h_ij = self.hamiltonian[i, j]
+
+                    local_energy += h_ij * p_j / p_i
+
+        return local_energy
 
 
 class GradientDescent(object):

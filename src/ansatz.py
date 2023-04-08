@@ -163,7 +163,12 @@ class RBM(object):
         c = (self.c_r + 1j * self.c_i).reshape(-1, 1)
         W = self.W_r + 1j * self.W_i
 
-        M = -(W @ D.T + c)
+        print(f"b: {b.shape}")
+        print(f"c: {c.shape}")
+        print(f"W: {W.shape}")
+        print(f"D: {D.shape}")
+
+        M = -(W @ D + c)
         np.prod(1 + np.exp(M), axis=0)
         bias = np.exp(np.transpose(b) @ D.T)
 

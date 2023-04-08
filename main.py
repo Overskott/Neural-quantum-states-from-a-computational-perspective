@@ -35,7 +35,7 @@ if __name__ == '__main__':
     print(f"Exact energy: {np.linalg.eigvalsh(H)}")
     print(f"Ground state: {np.linalg.eig(H)[1].T[0]}")
 
-    fd_plot_list = model.gradient_descent(gradient_method='finite_difference', exact_dist=False)
+    fd_plot_list = model.gradient_descent(gradient_method='finite_difference', exact_dist=True)
     #fd_plot_list_mc = model.gradient_descent(gradient_method='finite_difference', exact_dist=False)
     #analytic_plot_list = model.gradient_descent(gradient_method='analytical', exact_dist=True)
     #analytic_plot_list_mc = model_copy.gradient_descent(gradient_method='analytical', exact_dist=False)
