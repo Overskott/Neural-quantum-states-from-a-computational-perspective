@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
     fd_plot_list = model.gradient_descent(gradient_method='finite_difference', exact_dist=False)
     #fd_plot_list_mc = model.gradient_descent(gradient_method='finite_difference', exact_dist=False)
-    #analytic_plot_list = model.gradient_descent(gradient_method='analytical', exact_dist=True)
+    analytic_plot_list = model.gradient_descent(gradient_method='analytical', exact_dist=True)
     #analytic_plot_list_mc = model_copy.gradient_descent(gradient_method='analytical', exact_dist=False)
 
     print(f"Optimization time FD: {model.optimizing_time}")

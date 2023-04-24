@@ -71,7 +71,7 @@ class Model(object):
             distribution = dist
 
         if type(self.hamiltonian) == IsingHamiltonian:
-            print("Ising Hamiltonian")
+            # print("Ising Hamiltonian")
             result = np.linalg.eig(self.hamiltonian)[1].T[0]
             return np.real(result)
         elif type(self.hamiltonian) == ReducedIsingHamiltonian:
@@ -81,7 +81,7 @@ class Model(object):
             result = sum([self.local_energy(state) for state in distribution]) / len(distribution)
             return np.real(result)
         else:
-            print("General Hamiltonian")
+            # print("General Hamiltonian")
             result = sum([self.local_energy(state) for state in distribution]) / len(distribution)
 
             return np.real(result)

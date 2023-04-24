@@ -134,6 +134,17 @@ def generate_positive_ground_state_hamiltonian(n_qubits: int):
     return hamiltonian
 
 
+def numberToBase(n, b, num_digits):
+    digits = []
+    while n:
+        digits.append(int(n % b))
+        n //= b
+
+    while len(digits) < num_digits:
+        digits.append(0)
+    return digits[::-1]
+
+
 def int_to_binary_array(value, length):
     binary_string = format(int(value), 'b').zfill(length)
     binary_array = [int(bit) for bit in binary_string[::-1]]

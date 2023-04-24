@@ -32,24 +32,10 @@ rbm = RBM(visible_bias=b, hidden_bias=c, weights=W)  # Initializing RBM currentl
 model = Model(rbm, walker, H)  # Initializing model with RBM and Hamiltonian
 dist = np.array([[0, 1], [1, 1], [1, 0], [1, 1], [0, 1], [0, 0], [1, 0], [1, 1]])
 
-d_1 = len(dist)
-d_2 = 2**len(dist[0])
-print(f"d_1: {d_1}, d_2: {d_2}")
 
-i = [binary_array_to_int(state) for state in dist]
-print(i)
 
-M = np.zeros((d_1, d_2), dtype=int)
 
-print(f"hamiltonian: {H}")
-
-le = 0
-for state in dist:
-    le += model.local_energy(state)
-
-print(le)
-
-print(model.local_energy_fast(dist))
+print(numberToBase(5, 2, 10))
 # create matrix with onehot states
 # for (row, col) in enumerate(i):
 #     print(row, col)
