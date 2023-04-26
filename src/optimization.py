@@ -170,7 +170,7 @@ class AnalyticalGradient(object):
         return omega_bar_j
 
     def omega(self, state) -> np.ndarray:
-        return 1 / self.model.rbm.amplitude(state) * self.param_grads(state)
+        return 1 / self.model.rbm.amplitude_old(state) * self.param_grads(state)
 
     def omega_exact(self, state) -> np.ndarray:
         return 1 / self.model.get_amplitude_normalized(state) * self.param_grads(state)
@@ -244,37 +244,63 @@ class AnalyticalGradient(object):
         plt.show()
 
 
-class Adam(object):
-
-    def __init__(self, grads=None, beta1: float = 0.9, beta2: float = 0.999):
-        self.grads = grads
+class Adam:
+    def __init__(self, beta1=0.9, beta2=0.999, eps=1e-8):
         self.beta1 = beta1
         self.beta2 = beta2
-        self.epsilon = 1e-8
+        self.eps = eps
         self.t = 0
-        self.m = 0
-        self.v = 0
+        self.m = None
+        self.v = None
 
-    def __call__(self, grads):
-        if grads is None:
-            print("Missing argument: grads in Adam")
-
-        self.grads = grads
-        return self.adam_step()
-
-    def adam_step(self):
+    def step(self, grad_list):
         self.t += 1
-        weight_gradient_modified = self.optimize_grads()
+        if self.t == 1:
+            self.m = [np.zeros_like(grad) for grad in grad_list]
+            self.v = [np.zeros_like(grad) for grad in grad_list]
 
-        return weight_gradient_modified
+        mod_grad_list = []
+        for i, grad in enumerate(grad_list):
+            self.m[i] = self.beta1 * self.m[i] + (1 - self.beta1) * grad
+            self.v[i] = self.beta2 * self.v[i] + (1 - self.beta2) * grad ** 2
+            m_hat = self.m[i] / (1 - self.beta1 ** self.t)
+            v_hat = self.v[i] / (1 - self.beta2 ** self.t)
+            mod_grad_list.append(m_hat / (np.sqrt(v_hat) + self.eps))
 
-    def optimize_grads(self):
-        self.m = self.beta1 * self.m + (1 - self.beta1) * self.grads
-        self.v = self.beta2 * self.v + (1 - self.beta2) * np.abs(self.grads) ** 2
+        return mod_grad_list
 
-        m_hat = self.m / (1 - self.beta1 ** self.t)
-        v_hat = self.v / (1 - self.beta2 ** self.t)
-
-        adam_grad = m_hat / (np.sqrt(v_hat) + self.epsilon)
-
-        return adam_grad
+# class Adam(object):
+#
+#     def __init__(self, grads=None, beta1: float = 0.9, beta2: float = 0.999):
+#         self.grads = grads
+#         self.beta1 = beta1
+#         self.beta2 = beta2
+#         self.epsilon = 1e-8
+#         self.t = 0
+#         self.m = 0
+#         self.v = 0
+#
+#     def __call__(self, grads):
+#         if grads is None:
+#             print("Missing argument: grads in Adam")
+#
+#         self.grads = grads
+#         print(self.grads)
+#         return self.step()
+#
+#     def step(self):
+#         self.t += 1
+#         weight_gradient_modified = self.optimize_grads()
+#
+#         return weight_gradient_modified
+#
+#     def optimize_grads(self):
+#         self.m = self.beta1 * self.m + (1 - self.beta1) * self.grads
+#         self.v = self.beta2 * self.v + (1 - self.beta2) * np.abs(self.grads) ** 2
+#
+#         m_hat = self.m / (1 - self.beta1 ** self.t)
+#         v_hat = self.v / (1 - self.beta2 ** self.t)
+#
+#         adam_grad = m_hat / (np.sqrt(v_hat) + self.epsilon)
+#
+#         return adam_grad

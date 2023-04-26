@@ -40,7 +40,7 @@ class Model(object):
 
     def get_wave_function(self):
         dist = self.get_all_states()
-        amp_list = self.rbm.amplitude(dist)
+        amp_list = self.rbm.amplitude_old(dist)
         norm = np.sqrt(sum(np.abs(amp_list)**2))
 
         return amp_list / norm
@@ -110,7 +110,7 @@ class Model(object):
         """Calculates the local energy of the RBM in state s"""
 
         def eloc_index_value(index_1, index_2):
-            p_j = self.rbm.amplitude(utils.int_to_binary_array(index_2, state.size))
+            p_j = self.rbm.amplitude_old(utils.int_to_binary_array(index_2, state.size))
             h_ij = self.hamiltonian[index_1, index_2]
             return h_ij * p_j / p_i
 
@@ -175,7 +175,7 @@ class Model(object):
 
     def ising_local_energy(self, state: np.ndarray) -> complex:
         gamma = self.hamiltonian
-        p_i = self.rbm.amplitude(state)
+        p_i = self.rbm.amplitude_old(state)
 
         def create_mu(state, index):
             mu = state.copy()
@@ -190,7 +190,7 @@ class Model(object):
 
         def eloc_index_value(gamma, index_1):
             mu_i = create_mu(state, index_1)
-            p_j = self.rbm.amplitude(mu_i)
+            p_j = self.rbm.amplitude_old(mu_i)
             return gamma * p_j / p_i
 
         local_energy = sum([eloc_index_value(g, j) for (j, g) in enumerate(gamma)])

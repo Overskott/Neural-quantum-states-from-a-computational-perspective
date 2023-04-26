@@ -1,7 +1,5 @@
 import matplotlib.pyplot as plt
 
-
-
 from src.ansatz import RBM
 from src.mcmc import *
 from src.model import Model

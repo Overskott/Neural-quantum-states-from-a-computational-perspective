@@ -38,15 +38,20 @@ def random_symmetric_matrix(size, mu=-1, sigma=1):
     return np.tril(a) + np.tril(a, -1).T
 
 
-def random_hamiltonian(size: int):
-    """Generate a random hamiltonian matrix of n n_qubits x n_qubits"""
-    re = np.random.normal(0, 1, (size, size))
-    im = np.random.normal(0, 1, (size, size)) * 1j
-    ginibre = re + im
+# def random_hamiltonian(size: int):
+#     """Generate a random hamiltonian matrix of n n_qubits x n_qubits"""
+#     re = np.random.normal(0, 1, (size, size))
+#     im = np.random.normal(0, 1, (size, size)) * 1j
+#     ginibre = re + im
+#
+#     hamiltonian = ginibre + .conj()
+#
+#     return hamiltonian
 
-    hamiltonian = ginibre + ginibre.T.conj()
-
-    return hamiltonian
+def random_hamiltonian(d):
+    H = np.random.normal(0, 1, (d, d)) + 1j*np.random.normal(0, 1, (d, d))
+    H = H + np.conj(H).T
+    return H
 
 
 def random_gamma(size: int) -> np.ndarray:
