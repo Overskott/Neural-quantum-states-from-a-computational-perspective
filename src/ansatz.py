@@ -27,7 +27,7 @@ class RBM(object):
             self.hidden_size = hidden_size
 
         if hamiltonian is None:
-            self.hamiltonian = utils.random_hamiltonian(self.visible_size)
+            self.hamiltonian = utils.random_hamiltonian(2**self.visible_size)
         else:
             self.hamiltonian = hamiltonian
 
@@ -45,6 +45,7 @@ class RBM(object):
         self.params = [self.b_r, self.b_i, self.c_r, self.c_i, self.W_r, self.W_i]
 
         #self.state = utils.random_binary_array(2**self.visible_size)
+
         # Generate all possible states
         all_states_list = []
 
@@ -175,11 +176,12 @@ class RBM(object):
 
     # From Kristians code
 
+
     def probability(self, state: np.ndarray) -> float:
         """ Calculates the probability of finding the RBM in state s """
         return np.abs(self.normalized_amplitude(state)) ** 2
 
-    def amplitude(self, state):
+    def unnormalized_amplitude(self, state):
         Wstate = np.matmul(state, self.W_r) + 1j * np.matmul(state, self.W_i)
         exponent = Wstate + self.c_r + 1j * self.c_i
         A = np.exp(-exponent)
@@ -189,22 +191,22 @@ class RBM(object):
 
     def normalized_amplitude(self, state):
         # Normalized amplitude_old
-        Z = np.sqrt(np.sum(np.abs(self.amplitude(self.all_states)) ** 2))
-        return self.amplitude(state) / Z
+        Z = np.sqrt(np.sum(np.abs(self.unnormalized_amplitude(self.all_states)) ** 2))
+        return self.unnormalized_amplitude(state) / Z
 
     def wave_function(self):
-        return self.amplitude(self.all_states)
+        return self.normalized_amplitude(self.all_states)
 
     def local_energy(self, state):
         batch_size = state.shape[0]
         E = np.zeros((batch_size, 1), dtype=np.complex128)
-        a1 = self.amplitude(state)
+        a1 = self.normalized_amplitude(state)
 
         powers = np.array([2 ** i for i in reversed(range(self.visible_size))]).reshape(1, -1)
         state_indices = np.sum(state * powers, axis=1)
         for i in range(2 ** self.visible_size):
             state_prime = np.array(utils.numberToBase(i, 2, self.visible_size)).reshape(1, -1)
-            a2 = self.amplitude(state_prime)
+            a2 = self.normalized_amplitude(state_prime)
 
             h_slice = (self.hamiltonian[state_indices, i]).reshape(-1, 1)
             E += (h_slice / a1) * a2
@@ -303,7 +305,8 @@ class RBM(object):
 
         return grad_list
 
-    def train(self, iter=100, lr=0.01, analytical_grad=True):
+    @utils.timing
+    def train(self, iter=100, lr=0.01, analytical_grad=True, print_energy=False):
         energy_list = []
         for i in range(iter):
             if analytical_grad:
@@ -314,6 +317,7 @@ class RBM(object):
             for param, grad in zip(self.params, grad_list):
                 param -= lr * grad
             energy_list.append(self.exact_energy()[0, 0])
-            print(energy_list[-1])
+            if print_energy:
+                print(energy_list[-1])
 
         return energy_list

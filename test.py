@@ -21,7 +21,7 @@ parameters = get_config_file()['parameters']
 visible_layer_size = parameters['visible_size']  # Number of qubits
 hidden_layer_size = parameters['hidden_size']  # Number of hidden nodes
 
-n = 2
+n = 4
 d = 2**n
 np.random.seed(42)
 hamiltonian = random_hamiltonian(d)
@@ -29,7 +29,7 @@ eig,_ = np.linalg.eigh(hamiltonian)
 E_truth = np.min(eig)
 print(f"Energy truth: {E_truth}")
 
-rbm = RBM(visible_size=n, hidden_size=2, hamiltonian=hamiltonian)
+rbm = RBM(visible_size=n, hidden_size=8, hamiltonian=hamiltonian)
 energy_list = rbm.train(iter=500, lr=0.01, analytical_grad=True)
 
 plt.plot(energy_list)

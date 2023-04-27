@@ -139,6 +139,22 @@ def generate_positive_ground_state_hamiltonian(n_qubits: int):
     return hamiltonian
 
 
+
+def timing(f):
+    from functools import wraps
+    from time import time
+
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time()
+        result = f(*args, **kw)
+        te = time()
+        print('func:%r args:[%r, %r] took: %2.4f sec' % \
+          (f.__name__, args, kw, te-ts))
+        return result
+    return wrap
+
+
 def numberToBase(n, b, num_digits):
     digits = []
     while n:
