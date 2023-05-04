@@ -1,7 +1,9 @@
 import numpy as np
+from tqdm import tqdm
 
 import src.utils as utils
 from config_parser import get_config_file
+from src.mcmc import Walker
 from src.optimization import Adam
 
 
@@ -52,6 +54,7 @@ class RBM(object):
         for i in range(2 ** self.visible_size):
             state = utils.numberToBase(i, 2, self.visible_size)
             all_states_list.append(state)
+
         self.all_states = np.array(all_states_list)
 
     # def get_parameters_as_array(self):
@@ -146,10 +149,7 @@ class RBM(object):
     #     amp = product * bias
     #
     #     return amp
-
-
     #
-
     #
     # def probability_fast(self, dist: np.ndarray) -> float:
     #     """ Calculates the probability of finding the RBM in state s """
@@ -176,10 +176,12 @@ class RBM(object):
 
     # From Kristians code
 
-
     def probability(self, state: np.ndarray) -> float:
         """ Calculates the probability of finding the RBM in state s """
         return np.abs(self.normalized_amplitude(state)) ** 2
+
+    def unnormalized_probability(self, state):
+        return np.abs(self.unnormalized_amplitude(state))**2
 
     def unnormalized_amplitude(self, state):
         Wstate = np.matmul(state, self.W_r) + 1j * np.matmul(state, self.W_i)
@@ -197,16 +199,19 @@ class RBM(object):
     def wave_function(self):
         return self.normalized_amplitude(self.all_states)
 
+    def probability_dist(self):
+        return np.abs(self.wave_function())**2
+
     def local_energy(self, state):
         batch_size = state.shape[0]
         E = np.zeros((batch_size, 1), dtype=np.complex128)
-        a1 = self.normalized_amplitude(state)
+        a1 = self.unnormalized_amplitude(state)
 
         powers = np.array([2 ** i for i in reversed(range(self.visible_size))]).reshape(1, -1)
         state_indices = np.sum(state * powers, axis=1)
         for i in range(2 ** self.visible_size):
             state_prime = np.array(utils.numberToBase(i, 2, self.visible_size)).reshape(1, -1)
-            a2 = self.normalized_amplitude(state_prime)
+            a2 = self.unnormalized_amplitude(state_prime)
 
             h_slice = (self.hamiltonian[state_indices, i]).reshape(-1, 1)
             E += (h_slice / a1) * a2
@@ -219,15 +224,31 @@ class RBM(object):
         return E.real
 
     def estimate_energy(self):
-        sampled_states = self.mcmc(num_steps=self.num_steps)
+        walker = Walker()
+        sampled_states = walker(self.probability, 1000)
         return np.mean(self.local_energy(sampled_states)).real
 
-    def omega(self):
+    def omega_estiamte(self, states):
         omega_list = []
 
-        b_grad = self.b_grad(self.all_states).T
-        c_grad = self.c_grad(self.all_states).T
-        W_grad = self.W_grad(self.all_states).T
+        b_grad = self.b_grad(states)
+        c_grad = self.c_grad(states)
+        W_grad = self.W_grad(states)
+
+        omega_list.extend([b_grad, 1j * b_grad])
+
+        omega_list.extend([c_grad, 1j * c_grad])
+
+        omega_list.extend([W_grad, 1j * W_grad])
+
+        return omega_list
+
+    def omega(self, states):
+        omega_list = []
+
+        b_grad = self.b_grad(states).T
+        c_grad = self.c_grad(states).T
+        W_grad = self.W_grad(states).T
 
         A = self._diag(b_grad)
         omega_list.extend([A, 1j * A])
@@ -263,16 +284,16 @@ class RBM(object):
         A = np.einsum('ij,ik->ijk', state, A).reshape(batch_size, -1)
         return A
 
-    def finite_grad(self, h=0.001):
+    def finite_grad(self, h=0.05):
         grad_list = []
         for param in self.params:
             grad_array = np.zeros(param.shape)
-            for i in range(param.shape[0]):
+            for i in tqdm(range(param.shape[0])):
                 for j in range(param.shape[1]):
                     param[i, j] += h
-                    E1 = self.exact_energy()
+                    E1 = self.estimate_energy()
                     param[i, j] -= 2 * h
-                    E2 = self.exact_energy()
+                    E2 = self.estimate_energy()
                     param[i, j] += h
                     grad = (E1 - E2) / (2 * h)
                     grad_array[i, j] = grad
@@ -283,7 +304,7 @@ class RBM(object):
 
     def analytical_grad(self):
         grad_list = []
-        omega = self.omega()
+        omega = self.omega(self.all_states)
         wf = self.wave_function()
         H = self.hamiltonian
 
@@ -305,12 +326,27 @@ class RBM(object):
 
         return grad_list
 
+    def analytical_estimate_grad(self):
+        walker = Walker()
+        states = walker(self.unnormalized_probability, num_steps=1000)
+        omega_list = self.omega_estiamte(states)
+        local_energies = self.local_energy(states)
+
+        grad_list = []
+
+        for omega in omega_list:
+            omega_bar = np.mean(omega, axis=0)
+            grad = np.mean(np.conj(local_energies)*(omega - omega_bar), axis=0).real *2
+            grad_list.append(grad)
+
+        return grad_list
+
     @utils.timing
     def train(self, iter=100, lr=0.01, analytical_grad=True, print_energy=False):
         energy_list = []
         for i in range(iter):
             if analytical_grad:
-                grad_list = self.analytical_grad()
+                grad_list = self.analytical_estimate_grad()
             else:
                 grad_list = self.finite_grad()
             grad_list = self.adam.step(grad_list)

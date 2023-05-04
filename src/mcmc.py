@@ -32,12 +32,18 @@ class Walker(object):
 
         if current_state is None:
             self.current_state = np.random.randint(0, 2, data['visible_size'])
+
         else:
             self.current_state = current_state
 
         self.next_state = copy.deepcopy(self.current_state)
         self.walk_results = []
         self.acceptance_rate = 0
+
+    def __call__(self, function, num_steps):
+
+        self.estimate_distribution(function)
+        return np.asarray(self.get_history())
 
     def get_steps(self):
         return self.steps

@@ -2,14 +2,14 @@
   "parameters":{
 
         "visible_size": 2,
-        "hidden_size": 2,
+        "hidden_size": 4,
 
 
-        "burn_in_steps": 200,
-        "walker_steps": 5,
+        "burn_in_steps": 100,
+        "walker_steps": 1000,
         "hamming_distance": 1,
 
-        "learning_rate": 0.005,
+        "learning_rate": 0.01,
         "gradient_descent_steps": 100,
 
         "termination_threshold": 1e-10,

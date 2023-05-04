@@ -193,6 +193,7 @@ def hamming_step(binary_array: np.ndarray) -> np.ndarray:
 
     return new_array
 
+
 def hamming_steps(binary_array: np.ndarray, flips: int = 1) -> np.ndarray:
 
     new_array = binary_array.copy()
@@ -223,26 +224,3 @@ def time_function(f, *args, **kwargs):
     f(*args, **kwargs)
     end = time.process_time()
     return end - start
-
-
-def normal_distribution(x) -> float:
-    """
-
-    :param x:
-    :param sigma:
-    :param mu:
-    """
-    sigma = 1
-    mu = 0
-
-    if type(x) is not int:
-        x = binary_array_to_int(x)
-
-    _1 = 1 / (sigma * np.sqrt(2 * np.pi))
-    _2 = -(1 / 2) * ((x - mu) / sigma) ** 2
-
-    return _1 * np.exp(_2)
-
-
-def double_normal_distribution(x: int, distance: int, sigma_1: float, mu_1: float, sigma_2: float, mu_2: float):
-    return (normal_distribution(x, sigma_1, mu_1) + normal_distribution(x + distance, sigma_2, mu_2)) / 2
