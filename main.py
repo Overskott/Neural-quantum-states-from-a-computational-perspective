@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 from src.ansatz import RBM
 from src.mcmc import *
-from src.model import Model
+from src.model import NQS
 from src.utils import *
 from src.hamiltonians import Hamiltonian, IsingHamiltonian, ReducedIsingHamiltonian, DiagonalHamiltonian
 
@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     walker = Walker()
 
-    model = Model(rbm, walker, H)  # Initializing model with RBM and Hamiltonian
+    model = NQS(rbm, walker, H)  # Initializing model with RBM and Hamiltonian
     model_copy = copy.deepcopy(model)
 
     # Printing results

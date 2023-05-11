@@ -13,29 +13,29 @@ def random_binary_array(size):
     return np.random.randint(0, 2, size)
 
 
-def random_complex_array(size, mu=0, sigma=1):
-    re = np.random.normal(mu, sigma, size)
-    im = np.random.normal(mu, sigma, size) * 1j
+# def random_complex_array(size, mu=0, sigma=1):
+#     re = np.random.normal(mu, sigma, size)
+#     im = np.random.normal(mu, sigma, size) * 1j
+#
+#     return re + im
+#
+#
+# def random_matrix(size_x, size_y, mu=0, sigma=1):
+#     return np.random.normal(mu, sigma, (size_x, size_y))
+#
+#
+# def random_complex_matrix(size_x, size_y, mu=0, sigma=1):
+#     re = np.random.normal(mu, sigma, (size_x, size_y))
+#     im = np.random.normal(mu, sigma, (size_x, size_y)) * 1j
+#
+#     return re + im
 
-    return re + im
 
-
-def random_matrix(size_x, size_y, mu=0, sigma=1):
-    return np.random.normal(mu, sigma, (size_x, size_y))
-
-
-def random_complex_matrix(size_x, size_y, mu=0, sigma=1):
-    re = np.random.normal(mu, sigma, (size_x, size_y))
-    im = np.random.normal(mu, sigma, (size_x, size_y)) * 1j
-
-    return re + im
-
-
-@DeprecationWarning
-# use random_hamiltonian instead
-def random_symmetric_matrix(size, mu=-1, sigma=1):
-    a = np.random.normal(mu, sigma, (size, size))
-    return np.tril(a) + np.tril(a, -1).T
+# @DeprecationWarning
+# # use random_hamiltonian instead
+# def random_symmetric_matrix(size, mu=-1, sigma=1):
+#     a = np.random.normal(mu, sigma, (size, size))
+#     return np.tril(a) + np.tril(a, -1).T
 
 
 # def random_hamiltonian(size: int):
@@ -84,10 +84,13 @@ def get_matrix_off_diag_range(H):
             return i
 
 
-def random_ising_hamiltonian(size: int):
+def random_ising_hamiltonian(size: int, gamma_array=None):
 
     n = size
-    gamma = np.random.normal(0, 1, n - 1)
+    if gamma_array is None:
+        gamma = np.random.normal(0, 1, n - 1)
+    else:
+        gamma = gamma_array
     # gamma = np.zeros(n-1) - 1
     I = np.array([[1, 0], [0, 1]])
     X = np.array([[0, 1], [1, 0]])

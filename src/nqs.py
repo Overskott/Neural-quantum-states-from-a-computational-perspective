@@ -10,13 +10,82 @@ from src.mcmc import Walker
 from src.optimization import Adam
 
 
+class Hamiltonian(np.lib.mixins.NDArrayOperatorsMixin):
+
+    def __init__(self, dim=None, values=None):
+
+        self._check_dim(dim)
+
+        if dim is None:
+            self.dim = np.asarray(values).shape[0]
+        else:
+            self.dim = 2**dim
+
+        if values is None:
+            self.values = np.eye(self.dim)
+        else:
+            self.values = np.asarray(values)
+
+        #self._check_values(self.values)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}\n({self.values})"
+
+    def __getitem__(self, key):
+        return self.values[key]
+
+    def __setitem__(self, key, value):
+        self.values[key] = value
+
+    def __array__(self):
+        return self.values
+
+    def _check_dim(self, dim):
+        if dim is None:
+            pass
+        elif type(dim) != int:
+            raise TypeError(f"dim must be positive int, not {type(dim)}")
+        elif dim <= 0:
+            raise ValueError(f"dim must be positive int, not {dim}")
+
+    def _check_values(self, values):
+        if values is None:
+            pass
+        elif values.shape != (self.dim, self.dim):
+            raise ValueError(f"values must be of shape ({self.dim}, {self.dim}), not {values.shape}")
+
+
+class RandomHamiltonian(Hamiltonian):
+
+    def __init__(self, dim):
+        super().__init__(dim, values=None)
+
+        self.values = utils.random_hamiltonian(2**dim)
+
+
+class IsingHamiltonian(Hamiltonian):
+
+    def __init__(self, dim, values=None, gamma=None):
+        super().__init__(dim, values)
+
+        self.values = utils.random_ising_hamiltonian(dim, gamma)
+
+
+class IsingHamiltonianReduced(Hamiltonian):
+
+    def __init__(self, dim=None, values=None):
+        super().__init__(dim, values)
+
+        self.values = utils.random_gamma(dim)
+
+
 class RBM(object):
 
     def __init__(self,
-                 visible_size=None,
-                 hidden_size=None,
-                 hamiltonian=None,
-                 walker_steps=None
+                 visible_size: np.ndarray = None,
+                 hidden_size: np.ndarray = None,
+                 hamiltonian: Hamiltonian = None,
+                 walker_steps: int = None
                  ):
 
         data = get_config_file()['parameters']  # Load the config file
@@ -56,20 +125,16 @@ class RBM(object):
         self.params = [self.b_r, self.b_i, self.c_r, self.c_i, self.W_r, self.W_i]
 
         # Generate all possible states
+        self.all_states = self.get_all_states()
+
+    def get_all_states(self):
         all_states_list = []
 
         for i in range(2 ** self.visible_size):
             state = utils.numberToBase(i, 2, self.visible_size)
             all_states_list.append(state)
 
-        self.all_states = np.array(all_states_list)
-
-    def probability(self, state: np.ndarray) -> float:
-        """ Calculates the probability of finding the RBM in state s """
-        return np.abs(self.normalized_amplitude(state)) ** 2
-
-    def unnormalized_probability(self, state):
-        return np.abs(self.unnormalized_amplitude(state))**2
+        return np.array(all_states_list)
 
     def wave_function(self):
         return self.normalized_amplitude(self.all_states)
@@ -82,7 +147,10 @@ class RBM(object):
         Z = np.sqrt(np.sum(np.abs(self.unnormalized_amplitude(self.all_states)) ** 2))
         return self.unnormalized_amplitude(state) / Z
 
-    @profile
+    def probability(self, state: np.ndarray) -> float:
+        """ Calculates the probability of finding the RBM in state s """
+        return np.abs(self.normalized_amplitude(state)) ** 2
+
     def unnormalized_amplitude(self, state):
         Wstate = np.matmul(state, self.W_r) + 1j * np.matmul(state, self.W_i)
         exponent = Wstate + self.c_r + 1j * self.c_i
@@ -90,6 +158,9 @@ class RBM(object):
         A = np.prod(1 + A, axis=1, keepdims=True)
         A = A * np.exp(-np.matmul(state, self.b_r) - 1j * np.matmul(state, self.b_i))
         return A
+
+    def unnormalized_probability(self, state):
+        return np.abs(self.unnormalized_amplitude(state))**2
 
     def local_energy(self, state):
         batch_size = state.shape[0]
@@ -136,13 +207,15 @@ class RBM(object):
         E = wave_function.conj().T @ self.hamiltonian @ wave_function
         return E.real
 
-    @profile
     def estimate_energy(self):
         walker = Walker()
         sampled_states = walker(self.probability, self.walker_steps)
-        return np.mean(self.ising_local_energy(sampled_states)).real
 
-    @profile
+        if self.hamiltonian is IsingHamiltonianReduced:
+            return np.mean(self.ising_local_energy(sampled_states)).real
+        else:
+            return np.mean(self.local_energy(sampled_states)).real
+
     def omega_estimate(self, states):
         omega_list = []
 
@@ -151,14 +224,11 @@ class RBM(object):
         W_grad = self.W_grad(states)
 
         omega_list.extend([b_grad, 1j * b_grad])
-
         omega_list.extend([c_grad, 1j * c_grad])
-
         omega_list.extend([W_grad, 1j * W_grad])
 
         return omega_list
 
-    @profile
     def omega(self, states):
         omega_list = []
 
@@ -201,15 +271,20 @@ class RBM(object):
         return A
 
     def finite_grad(self, h=0.05):
+        if self.walker_steps == 0:
+            func = self.exact_energy
+        else:
+            func = self.estimate_energy
+
         grad_list = []
         for param in self.params:
             grad_array = np.zeros(param.shape)
             for i in range(param.shape[0]):
                 for j in range(param.shape[1]):
                     param[i, j] += h
-                    E1 = self.exact_energy()
+                    E1 = func()
                     param[i, j] -= 2 * h
-                    E2 = self.exact_energy()
+                    E2 = func()
                     param[i, j] += h
                     grad = (E1 - E2) / (2 * h)
                     grad_array[i, j] = grad
@@ -219,10 +294,18 @@ class RBM(object):
         return grad_list
 
     def analytical_grad(self):
+
+        if self.walker_steps == 0:
+            return self.exact_distribution_grad()
+
+        else:
+            return self.estimate_distribution_grad()
+
+    def exact_distribution_grad(self):
         grad_list = []
+        H = self.hamiltonian
         omega = self.omega(self.all_states)
         wf = self.wave_function()
-        H = self.hamiltonian
 
         # loop over b, c and W
         for i, O in enumerate(omega):
@@ -239,15 +322,13 @@ class RBM(object):
                 grad = grad.reshape(self.visible_size, self.hidden_size)
 
             grad_list.append(grad.real)
-
         return grad_list
 
-    @profile
-    def analytical_estimate_grad(self):
+    def estimate_distribution_grad(self):
         walker = Walker()
         states = walker(self.unnormalized_probability, self.walker_steps)
         omega_list = self.omega_estimate(states)
-        local_energies = self.ising_local_energy(states)
+        local_energies = self.local_energy(states)
 
         grad_list = []
 
@@ -258,8 +339,8 @@ class RBM(object):
 
         return grad_list
 
-    @utils.timing
-    def train(self, iter=1000, lr=0.01, analytical_grad=False, print_energy=False):
+
+    def train(self, iter, lr=0.01, analytical_grad=False, print_energy=False):
         energy_list = []
 
         try:
@@ -287,7 +368,6 @@ class RBM(object):
         return energy_list
 
     @utils.timing
-    @profile
     def train_mcmc(self, iter=1000, lr=0.01, analytical_grad=True, print_energy=False, termination_condition=None):
         energy_list = []
 

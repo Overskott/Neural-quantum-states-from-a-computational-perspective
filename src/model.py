@@ -12,17 +12,15 @@ import numpy as np
 from src.optimization import Adam, FiniteDifference, AnalyticalGradient
 
 
-class Model(object):
+class NQS(object):
 
     def __init__(self, rbm: RBM = None, walker: Walker = None, hamiltonian: Hamiltonian = None):
 
         self.rbm = rbm
         self.walker = walker
         self.hamiltonian = hamiltonian
-        #self.off_diag = utils.get_matrix_off_diag_range(self.hamiltonian)
         self.data = get_config_file()['parameters']  # Load the config file
 
-        self.optimizing_time = 0
 
     def get_all_states(self):
         return np.asarray([utils.int_to_binary_array(i, self.rbm.visible_size)
@@ -269,7 +267,7 @@ class Model(object):
 
 class GradientDescent(object):
 
-    def __init__(self, model: Model, learning_rate=None, n_steps=None, termination_condition=None, adam_optimization=None):
+    def __init__(self, model: NQS, learning_rate=None, n_steps=None, termination_condition=None, adam_optimization=None):
         self.model = model
         self.learning_rate = learning_rate
         self.n_steps = n_steps
