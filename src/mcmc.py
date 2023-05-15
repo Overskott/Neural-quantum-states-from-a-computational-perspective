@@ -8,34 +8,16 @@ from src import utils
 class Walker(object):
 
     def __init__(self,
-                 steps: int = None,
-                 burn_in: int = None,
-                 hamming_distance: int = None,
-                 current_state: np.ndarray = None):
+                 visible_size: int,
+                 steps: int,
+                 burn_in: int,
+                 hamming_distance: int = 1,
+                 ):
 
-        data = get_config_file()['parameters']  # Load the config file
-
-        if steps is None:
-            self.steps = data['walker_steps']
-        else:
-            self.steps = steps
-
-        if burn_in is None:
-            self.burn_in = data['burn_in_steps']
-        else:
-            self.burn_in = burn_in
-
-        if hamming_distance is None:
-            self.hamming_distance = data['hamming_distance']
-        else:
-            self.hamming_distance = hamming_distance
-
-        if current_state is None:
-            self.current_state = np.random.randint(0, 2, data['visible_size'])
-
-        else:
-            self.current_state = current_state
-
+        self.steps = steps
+        self.burn_in = burn_in
+        self.hamming_distance = hamming_distance
+        self.current_state = np.random.randint(0, 2, visible_size)
         self.next_state = copy.deepcopy(self.current_state)
         self.walk_results = []
         self.acceptance_rate = 0

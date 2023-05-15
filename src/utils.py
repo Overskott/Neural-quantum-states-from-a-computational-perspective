@@ -84,13 +84,15 @@ def get_matrix_off_diag_range(H):
             return i
 
 
-def random_ising_hamiltonian(size: int, gamma_array=None):
+def random_ising_hamiltonian(size: int = None, gamma_array: np.ndarray = None):
 
-    n = size
     if gamma_array is None:
+        n = size
         gamma = np.random.normal(0, 1, n - 1)
     else:
+        n = len(gamma_array)
         gamma = gamma_array
+
     # gamma = np.zeros(n-1) - 1
     I = np.array([[1, 0], [0, 1]])
     X = np.array([[0, 1], [1, 0]])

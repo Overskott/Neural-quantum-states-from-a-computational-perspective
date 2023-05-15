@@ -64,11 +64,11 @@ np.random.seed(42)
 
 n = 3
 hidden = 12
-steps = 300
+steps = 100
 np.set_printoptions(linewidth=200, precision=4, suppress=True)
 np.random.seed(42)
 
-H_r = nqs.RandomHamiltonian(dim=n)
+H_r = nqs.RandomHamiltonian(n=n)
 
 eig,_ = np.linalg.eigh(H_r)
 E_truth = np.min(eig)
@@ -80,7 +80,7 @@ energy_list = [it for it in rbm.train(iter=steps, lr=0.01, print_energy=True)]
 
 
 gamma = utils.random_gamma(n)
-H_i = nqs.IsingHamiltonian(dim=n)
+H_i = nqs.IsingHamiltonian(gamma=gamma)
 eig,_ = np.linalg.eigh(H_i)
 I_truth = np.min(eig)
 print(f"E_truth: {I_truth}")

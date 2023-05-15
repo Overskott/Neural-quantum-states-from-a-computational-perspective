@@ -12,14 +12,14 @@ from src.optimization import Adam
 
 class Hamiltonian(np.lib.mixins.NDArrayOperatorsMixin):
 
-    def __init__(self, dim=None, values=None):
+    def __init__(self, n=None, values=None):
 
-        self._check_dim(dim)
+        #self._check_dim(n)
 
-        if dim is None:
+        if n is None:
             self.dim = np.asarray(values).shape[0]
         else:
-            self.dim = 2**dim
+            self.dim = 2 ** n
 
         if values is None:
             self.values = np.eye(self.dim)
@@ -57,33 +57,39 @@ class Hamiltonian(np.lib.mixins.NDArrayOperatorsMixin):
 
 class RandomHamiltonian(Hamiltonian):
 
-    def __init__(self, dim):
-        super().__init__(dim, values=None)
+    def __init__(self, n):
+        super().__init__(n, values=None)
 
-        self.values = utils.random_hamiltonian(2**dim)
+        self.values = utils.random_hamiltonian(2 ** n)
 
 
 class IsingHamiltonian(Hamiltonian):
 
-    def __init__(self, dim, values=None, gamma=None):
-        super().__init__(dim, values)
+    def __init__(self, n=None, gamma=None):
+        super().__init__(n, values=gamma)
 
-        self.values = utils.random_ising_hamiltonian(dim, gamma)
+        if gamma is None:
+            self.values = utils.random_ising_hamiltonian(size=n)
+        else:
+            self.values = utils.random_ising_hamiltonian(gamma_array=gamma)
 
 
 class IsingHamiltonianReduced(Hamiltonian):
 
-    def __init__(self, dim=None, values=None):
-        super().__init__(dim, values)
+    def __init__(self, n=None, gamma=None):
+        super().__init__(n, values=gamma)
 
-        self.values = utils.random_gamma(dim)
+        if gamma is None:
+            self.values = utils.random_gamma(n)
+        else:
+            self.values = gamma
 
 
 class RBM(object):
 
     def __init__(self,
-                 visible_size: np.ndarray = None,
-                 hidden_size: np.ndarray = None,
+                 visible_size: int = None,
+                 hidden_size: int = None,
                  hamiltonian: Hamiltonian = None,
                  walker_steps: int = None
                  ):
@@ -187,10 +193,10 @@ class RBM(object):
             mu = state.copy()
             mu[:, index] = 1 - state[:, index]
 
-            # if index == self.visible_size-1:
-            #     pass
-            # else:
-            mu[:, index+1] = 1 - state[:, index+1]
+            if index == self.visible_size-1:
+                pass
+            else:
+                mu[:, index+1] = 1 - state[:, index+1]
             return mu
 
         def eloc_index_value(gamma, index):
@@ -208,10 +214,10 @@ class RBM(object):
         return E.real
 
     def estimate_energy(self):
-        walker = Walker()
+        walker = Walker(self.visible_size, self.walker_steps, self.walker_steps//10)
         sampled_states = walker(self.probability, self.walker_steps)
 
-        if self.hamiltonian is IsingHamiltonianReduced:
+        if type(self.hamiltonian) is IsingHamiltonianReduced:
             return np.mean(self.ising_local_energy(sampled_states)).real
         else:
             return np.mean(self.local_energy(sampled_states)).real
@@ -325,10 +331,14 @@ class RBM(object):
         return grad_list
 
     def estimate_distribution_grad(self):
-        walker = Walker()
+        walker = Walker(self.visible_size, self.walker_steps, self.walker_steps//10)
         states = walker(self.unnormalized_probability, self.walker_steps)
         omega_list = self.omega_estimate(states)
-        local_energies = self.local_energy(states)
+
+        if type(self.hamiltonian) is IsingHamiltonianReduced:
+            local_energies = self.ising_local_energy(states)
+        else:
+            local_energies = self.local_energy(states)
 
         grad_list = []
 
@@ -339,8 +349,7 @@ class RBM(object):
 
         return grad_list
 
-
-    def train(self, iter, lr=0.01, analytical_grad=False, print_energy=False):
+    def train(self, iter=1000, lr=0.01, analytical_grad=True, print_energy=True):
         energy_list = []
 
         try:
@@ -353,43 +362,43 @@ class RBM(object):
                 grad_list = self.adam.step(grad_list)
 
                 for param, grad in zip(self.params, grad_list):
-                    #print(f"params: {param}, grad:  {grad}")
-                    #print(f"params shape: {param.shape}, grad shape:  {grad.shape}")
-                    param -= lr * grad
-
-                energy_list.append(self.exact_energy()[0, 0])
-
-                if print_energy:
-                    print(f"Current ground state: {energy_list[-1]} for training step {i}")
-
-        except KeyboardInterrupt:
-            print(f"Training interrupted by user")
-
-        return energy_list
-
-    @utils.timing
-    def train_mcmc(self, iter=1000, lr=0.01, analytical_grad=True, print_energy=False, termination_condition=None):
-        energy_list = []
-
-        try:
-            for i in range(iter):
-                if analytical_grad:
-                    grad_list = self.analytical_estimate_grad()
-                else:
-                    grad_list = self.finite_grad()
-                grad_list = self.adam.step(grad_list)
-                for param, grad in zip(self.params, grad_list):
                     grad = grad.reshape(param.shape)
-                    #print(f"params: {param}, grad:  {grad}")
-                    #print(f"params shape: {param.shape}, grad shape:  {grad.shape}")
-
                     param -= lr * grad
+
+                #energy_list.append(self.exact_energy()[0, 0])
                 energy_list.append(self.estimate_energy())
+
                 if print_energy:
                     print(f"Current ground state: {energy_list[-1]} for training step {i}")
-                #input()
 
         except KeyboardInterrupt:
             print(f"Training interrupted by user")
 
         return energy_list
+
+    # @utils.timing
+    # def train_mcmc(self, iter=1000, lr=0.01, analytical_grad=True, print_energy=False, termination_condition=None):
+    #     energy_list = []
+    #
+    #     try:
+    #         for i in range(iter):
+    #             if analytical_grad:
+    #                 grad_list = self.analytical_estimate_grad()
+    #             else:
+    #                 grad_list = self.finite_grad()
+    #             grad_list = self.adam.step(grad_list)
+    #             for param, grad in zip(self.params, grad_list):
+    #                 grad = grad.reshape(param.shape)
+    #                 #print(f"params: {param}, grad:  {grad}")
+    #                 #print(f"params shape: {param.shape}, grad shape:  {grad.shape}")
+    #
+    #                 param -= lr * grad
+    #             energy_list.append(self.estimate_energy())
+    #             if print_energy:
+    #                 print(f"Current ground state: {energy_list[-1]} for training step {i}")
+    #             #input()
+    #
+    #     except KeyboardInterrupt:
+    #         print(f"Training interrupted by user")
+    #
+    #     return energy_list
