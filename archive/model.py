@@ -3,13 +3,13 @@ import time
 from typing import List
 
 from config_parser import get_config_file
-from src.ansatz import RBM
-from src.hamiltonians import Hamiltonian, IsingHamiltonian, ReducedIsingHamiltonian, DiagonalHamiltonian
-from src.mcmc import Walker
+from archive.ansatz import RBM
+from archive.hamiltonians import Hamiltonian, IsingHamiltonian, ReducedIsingHamiltonian, DiagonalHamiltonian
+from archive.mcmc import Walker
 import src.utils as utils
 import numpy as np
 
-from src.optimization import Adam, FiniteDifference, AnalyticalGradient
+from archive.optimization import Adam, FiniteDifference, AnalyticalGradient
 
 
 class NQS(object):

@@ -1,30 +1,8 @@
-import copy
-import timeit
-
-import numpy as np
 from matplotlib import pyplot as plt
 
 from config_parser import get_config_file
-#from src import utils, nqs
-from src.ansatz import RBM
-from src.hamiltonians import Hamiltonian, IsingHamiltonian, ReducedIsingHamiltonian, DiagonalHamiltonian
-from src.mcmc import Walker
-from src.model import NQS
+from src import nqs
 from src.utils import *
-
-
-import timeit
-
-import numpy as np
-from matplotlib import pyplot as plt
-
-from config_parser import get_config_file
-from src import utils, nqs
-from src.ansatz import RBM
-from src.hamiltonians import Hamiltonian, IsingHamiltonian, ReducedIsingHamiltonian, DiagonalHamiltonian
-from src.mcmc import Walker
-from src.utils import *
-
 
 seed = 42  # Seed for random number generator
 np.random.seed(seed)
@@ -60,45 +38,21 @@ np.random.seed(42)
 #
 # plt.show()
 
-
-
-n = 3
-hidden = 12
+n = 2
+hidden = 4
 steps = 100
 np.set_printoptions(linewidth=200, precision=4, suppress=True)
 np.random.seed(42)
 
-H_r = nqs.RandomHamiltonian(n=n)
+H = nqs.RandomHamiltonian(n=n)
 
-eig,_ = np.linalg.eigh(H_r)
+eig,_ = np.linalg.eigh(H)
 E_truth = np.min(eig)
 print(f"E_truth: {E_truth}")
 plt.axhline(y=E_truth, color='b', linestyle='--')
 
-rbm = RBM(visible_size=n, hidden_size=hidden, hamiltonian=H_r)
+rbm = nqs.RBM(visible_size=n, hidden_size=hidden, hamiltonian=H, walker_steps=0)
 energy_list = [it for it in rbm.train(iter=steps, lr=0.01, print_energy=True)]
 
+print(rbm.train.run_time)
 
-gamma = utils.random_gamma(n)
-H_i = nqs.IsingHamiltonian(gamma=gamma)
-eig,_ = np.linalg.eigh(H_i)
-I_truth = np.min(eig)
-print(f"E_truth: {I_truth}")
-plt.axhline(y=I_truth, color='k', linestyle='--')
-
-rbm = RBM(visible_size=n, hidden_size=hidden, hamiltonian=H_i)
-rbm_ir = copy.deepcopy(rbm)
-i_energy_list = [it for it in rbm.train(iter=steps, lr=0.01, print_energy=True)]
-
-ir_energy_list = [it for it in rbm_ir.train(iter=steps, lr=0.01, print_energy=True)]
-
-plt.plot(energy_list)
-
-plt.plot(i_energy_list)
-
-plt.plot(ir_energy_list, 'r--')
-
-
-plt.legend(['Truth random','Truth Ising', 'Random', 'Ising', 'Ising Reduced' ])
-
-plt.show()

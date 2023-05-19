@@ -5,12 +5,12 @@ import numpy as np
 import random
 
 
-def random_array(size, mu=0, sigma=1):
-    return np.random.normal(mu, sigma, size)
-
-
-def random_binary_array(size):
-    return np.random.randint(0, 2, size)
+# def random_array(size, mu=0, sigma=1):
+#     return np.random.normal(mu, sigma, size)
+#
+#
+# def random_binary_array(size):
+#     return np.random.randint(0, 2, size)
 
 
 # def random_complex_array(size, mu=0, sigma=1):
@@ -48,40 +48,14 @@ def random_binary_array(size):
 #
 #     return hamiltonian
 
-def random_hamiltonian(d):
-    H = np.random.normal(0, 1, (d, d)) + 1j*np.random.normal(0, 1, (d, d))
+def random_hamiltonian(size: int):
+    H = np.random.normal(0, 1, (2**size, 2**size)) + 1j * np.random.normal(0, 1, (2**size, 2**size))
     H = H + np.conj(H).T
     return H
 
 
-def random_gamma(size: int) -> np.ndarray:
-    return random_array(size, mu=0, sigma=1)
-
-
-def random_diagonal_hamiltonian(size: int, off_diagonal=0):
-    """
-    Generate a random diagonal hamiltonian matrix of n n_qubits x n_qubits with off_diagonal elements.
-
-    :param size: Size of the hamiltonian matrix
-    :param off_diagonal: Number of off-diagonals above and below the main diagonal
-
-    :return: Diagonal hamiltonian matrix
-    """
-    H = random_hamiltonian(size)
-    diag_ham = -(H - np.triu(H, -off_diagonal) - np.tril(H, off_diagonal))
-
-    return diag_ham
-
-
-def get_matrix_off_diag_range(H):
-    hamiltonian_size = H.shape[0]
-
-    for i in range(hamiltonian_size):
-
-        off_diag = H - np.tril(H, i) + H - np.triu(H, -i)
-
-        if np.count_nonzero(off_diag) == 0:
-            return i
+def random_gamma(size: int, sigma=0, mu=1) -> np.ndarray:
+    return np.random.normal(size, sigma, mu)
 
 
 def random_ising_hamiltonian(size: int = None, gamma_array: np.ndarray = None):
@@ -118,6 +92,33 @@ def random_ising_hamiltonian(size: int = None, gamma_array: np.ndarray = None):
 
     return H
 
+
+def random_diagonal_hamiltonian(size: int, off_diagonal=0):
+    """
+    Generate a random diagonal hamiltonian matrix of n n_qubits x n_qubits with off_diagonal elements.
+
+    :param size: Size of the hamiltonian matrix
+    :param off_diagonal: Number of off-diagonals above and below the main diagonal
+
+    :return: Diagonal hamiltonian matrix
+    """
+    H = random_hamiltonian(2**size)
+    diag_ham = -(H - np.triu(H, -off_diagonal) - np.tril(H, off_diagonal))
+
+    return diag_ham
+
+
+def get_matrix_off_diag_range(H):
+    hamiltonian_size = H.shape[0]
+
+    for i in range(hamiltonian_size):
+
+        off_diag = H - np.tril(H, i) + H - np.triu(H, -i)
+
+        if np.count_nonzero(off_diag) == 0:
+            return i
+
+
 def generate_positive_ground_state_hamiltonian(n_qubits: int):
     size = 2**n_qubits
     G = np.random.normal(0, 1, (size, size))
@@ -144,8 +145,8 @@ def generate_positive_ground_state_hamiltonian(n_qubits: int):
     return hamiltonian
 
 
-
 def timing(f):
+    # https://stackoverflow.com/questions/1622943/timeit-versus-timing-decorator
     from functools import wraps
     from time import time
 
@@ -154,8 +155,8 @@ def timing(f):
         ts = time()
         result = f(*args, **kw)
         te = time()
-        print('func:%r args:[%r, %r] took: %2.4f sec' % \
-          (f.__name__, args, kw, te-ts))
+        wrap.run_time = te - ts
+        print(f"func:{f.__name__} args:[{args}, {kw}] took: {te-ts} sec")
         return result
     return wrap
 
@@ -171,32 +172,23 @@ def numberToBase(n, b, num_digits):
     return digits[::-1]
 
 
-def int_to_binary_array(value, length):
-    binary_string = format(int(value), 'b').zfill(length)
-    binary_array = [int(bit) for bit in binary_string[::-1]]
-
-    return np.flip(np.asarray(binary_array))  # Flipping (reversing) to return in 'least significant bit' format
-
-
-def binary_array_to_int(binary_array):
-    """Updated the self.value value based on the bit_array value"""
-    value = sum([bit * 2 ** i for (i, bit) in enumerate(np.flip(binary_array))])
-
-    return int(value)
+# def int_to_binary_array(value, length):
+#     binary_string = format(int(value), 'b').zfill(length)
+#     binary_array = [int(bit) for bit in binary_string[::-1]]
+#
+#     return np.flip(np.asarray(binary_array))  # Flipping (reversing) to return in 'least significant bit' format
+#
+#
+# def binary_array_to_int(binary_array):
+#     """Updated the self.value value based on the bit_array value"""
+#     value = sum([bit * 2 ** i for (i, bit) in enumerate(np.flip(binary_array))])
+#
+#     return int(value)
 
 
 def flip_bit(state: np.ndarray, index: int):
     """Flips (0->1 or 1->0) the bit on given index of the state"""
     state[index] = 1 - state[index]
-
-
-def hamming_step(binary_array: np.ndarray) -> np.ndarray:
-
-    new_array = binary_array.copy()
-    flip_index = random.randint(0, binary_array.size-1) # minus 1?
-    new_array[flip_index] = 1 - binary_array[flip_index]
-
-    return new_array
 
 
 def hamming_steps(binary_array: np.ndarray, flips: int = 1) -> np.ndarray:
@@ -216,16 +208,25 @@ def hamming_steps(binary_array: np.ndarray, flips: int = 1) -> np.ndarray:
     return new_array
 
 
-def one_hot_matrix(dist: np.array):
-    d_1 = len(dist)
-    d_2 = len(dist[0])
-    i = [binary_array_to_int(state) for state in dist]
+def hamming_step(binary_array: np.ndarray) -> np.ndarray:
 
-    M = np.zeros(d_1, d_2)
+    new_array = binary_array.copy()
+    flip_index = random.randint(0, binary_array.size-1) # minus 1?
+    new_array[flip_index] = 1 - binary_array[flip_index]
+
+    return new_array
 
 
-def time_function(f, *args, **kwargs):
-    start = time.process_time()
-    f(*args, **kwargs)
-    end = time.process_time()
-    return end - start
+# def one_hot_matrix(dist: np.array):
+#     d_1 = len(dist)
+#     d_2 = len(dist[0])
+#     i = [binary_array_to_int(state) for state in dist]
+#
+#     M = np.zeros(d_1, d_2)
+#
+#
+# def time_function(f, *args, **kwargs):
+#     start = time.process_time()
+#     f(*args, **kwargs)
+#     end = time.process_time()
+#     return end - start

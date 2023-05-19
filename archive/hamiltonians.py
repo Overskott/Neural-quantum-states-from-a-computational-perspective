@@ -14,8 +14,9 @@ class Hamiltonian(np.ndarray):
         if obj is None:
             return
 
-    def __call__(self):
-        return h
+    # def __call__(self):
+    #     return h
+
 
 class IsingHamiltonian(Hamiltonian):
 

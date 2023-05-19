@@ -2,12 +2,11 @@ import line_profiler
 profile = line_profiler.LineProfiler()
 
 import numpy as np
-from tqdm import tqdm
 
 import src.utils as utils
 from config_parser import get_config_file
-from src.mcmc import Walker
-from src.optimization import Adam
+from archive.mcmc import Walker
+from archive.optimization import Adam
 
 
 class RBM(object):

@@ -1,7 +1,6 @@
 import copy
 import random
 import numpy as np
-from config_parser import get_config_file
 from src import utils
 
 

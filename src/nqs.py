@@ -1,13 +1,10 @@
+import copy
 import line_profiler
 profile = line_profiler.LineProfiler()
-
 import numpy as np
-from tqdm import tqdm
 
 import src.utils as utils
 from config_parser import get_config_file
-from src.mcmc import Walker
-from src.optimization import Adam
 
 
 class Hamiltonian(np.lib.mixins.NDArrayOperatorsMixin):
@@ -349,6 +346,7 @@ class RBM(object):
 
         return grad_list
 
+    @utils.timing
     def train(self, iter=1000, lr=0.01, analytical_grad=True, print_energy=True):
         energy_list = []
 
@@ -365,8 +363,10 @@ class RBM(object):
                     grad = grad.reshape(param.shape)
                     param -= lr * grad
 
-                #energy_list.append(self.exact_energy()[0, 0])
-                energy_list.append(self.estimate_energy())
+                if self.walker_steps == 0:
+                    energy_list.append(self.exact_energy()[0, 0])
+                else:
+                    energy_list.append(self.estimate_energy())
 
                 if print_energy:
                     print(f"Current ground state: {energy_list[-1]} for training step {i}")
@@ -375,6 +375,107 @@ class RBM(object):
             print(f"Training interrupted by user")
 
         return energy_list
+
+class Adam:
+    def __init__(self, beta1=0.9, beta2=0.999, eps=1e-8):
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.eps = eps
+        self.t = 0
+        self.m = None
+        self.v = None
+
+    def step(self, grad_list):
+        self.t += 1
+        if self.t == 1:
+            self.m = [np.zeros_like(grad) for grad in grad_list]
+            self.v = [np.zeros_like(grad) for grad in grad_list]
+
+        mod_grad_list = []
+        for i, grad in enumerate(grad_list):
+            self.m[i] = self.beta1 * self.m[i] + (1 - self.beta1) * grad
+            self.v[i] = self.beta2 * self.v[i] + (1 - self.beta2) * grad ** 2
+            m_hat = self.m[i] / (1 - self.beta1 ** self.t)
+            v_hat = self.v[i] / (1 - self.beta2 ** self.t)
+            mod_grad_list.append(m_hat / (np.sqrt(v_hat) + self.eps))
+
+        return mod_grad_list
+
+
+class Walker(object):
+
+    def __init__(self,
+                 visible_size: int,
+                 steps: int,
+                 burn_in: int,
+                 hamming_distance: int = 1,
+                 ):
+
+        self.steps = steps
+        self.burn_in = burn_in
+        self.hamming_distance = hamming_distance
+        self.current_state = np.random.randint(0, 2, visible_size)
+        self.next_state = copy.deepcopy(self.current_state)
+        self.walk_results = []
+        self.acceptance_rate = 0
+
+    def __call__(self, function, num_steps):
+
+        self.estimate_distribution(function)
+        return np.asarray(self.get_history())
+
+    def get_steps(self):
+        return self.steps
+
+    def get_history(self):
+        return self.walk_results
+
+    def clear_history(self):
+        self.walk_results = []
+
+    def estimate_distribution(self, function, burn_in=True) -> None:
+        self.clear_history()
+
+        if burn_in:
+            self.burn_in_walk(function)
+
+        self.random_walk(function)
+
+    # @profile
+    def random_walk(self, function):
+
+        for i in range(self.steps):
+            self.next_state = utils.hamming_step(self.current_state)
+            self.walk_results.append(self.current_state)
+
+            if self.acceptance_criterion(function):
+                self.current_state = copy.deepcopy(self.next_state)
+                self.acceptance_rate += 1
+
+            else:
+                self.next_state = copy.deepcopy(self.current_state)
+
+    def burn_in_walk(self, function):
+        for i in range(self.burn_in):
+            self.next_state = utils.hamming_step(self.current_state)
+
+            if self.acceptance_criterion(function):
+                self.current_state = copy.deepcopy(self.next_state)
+            else:
+                self.next_state = copy.deepcopy(self.current_state)
+
+    def average_acceptance(self):
+        return self.acceptance_rate / self.steps
+
+    # @profile
+    def acceptance_criterion(self, function) -> bool:
+        u = np.random.uniform(0, 1)
+        new_score = function(self.next_state)
+        old_score = function(self.current_state)
+
+        score = new_score / old_score > u
+
+        return score
 
     # @utils.timing
     # def train_mcmc(self, iter=1000, lr=0.01, analytical_grad=True, print_energy=False, termination_condition=None):
