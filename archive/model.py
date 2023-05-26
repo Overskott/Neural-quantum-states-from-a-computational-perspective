@@ -3,26 +3,24 @@ import time
 from typing import List
 
 from config_parser import get_config_file
-from src.ansatz import RBM
-from src.hamiltionians import Hamiltonian, IsingHamiltonian, DiagonalHamiltonian
-from src.mcmc import Walker
+from archive.ansatz import RBM
+from archive.hamiltonians import Hamiltonian, IsingHamiltonian, ReducedIsingHamiltonian, DiagonalHamiltonian
+from archive.mcmc import Walker
 import src.utils as utils
 import numpy as np
 
-from src.optimization import Adam, FiniteDifference, AnalyticalGradient
+from archive.optimization import Adam, FiniteDifference, AnalyticalGradient
 
 
-class Model(object):
+class NQS(object):
 
-    def __init__(self, rbm: RBM, walker: Walker, hamiltonian: Hamiltonian):
+    def __init__(self, rbm: RBM = None, walker: Walker = None, hamiltonian: Hamiltonian = None):
 
         self.rbm = rbm
         self.walker = walker
         self.hamiltonian = hamiltonian
-        self.off_diag = utils.get_matrix_off_diag_range(self.hamiltonian)
         self.data = get_config_file()['parameters']  # Load the config file
 
-        self.optimizing_time = 0
 
     def get_all_states(self):
         return np.asarray([utils.int_to_binary_array(i, self.rbm.visible_size)
@@ -40,7 +38,7 @@ class Model(object):
 
     def get_wave_function(self):
         dist = self.get_all_states()
-        amp_list = np.asarray([self.rbm.amplitude(state) for state in dist])
+        amp_list = self.rbm.amplitude_old(dist)
         norm = np.sqrt(sum(np.abs(amp_list)**2))
 
         return amp_list / norm
@@ -63,52 +61,65 @@ class Model(object):
 
         return np.real(sum(probability_list * local_energy_list))
 
+    #@profile
     def estimate_energy(self, dist: List[np.ndarray] = None) -> float:
         if dist is None:
             distribution = self.get_mcmc_states()
         else:
             distribution = dist
-        #energy = 0
-
-        #for state in distribution:
-
-           # energy += self.local_energy(state)
-
-        #result = energy / len(distribution)
 
         if type(self.hamiltonian) == IsingHamiltonian:
-            if self.hamiltonian.shape[0] == self.hamiltonian.shape[1]:
-                result = np.linalg.eig(self.hamiltonian)[1].T[0]
-            else:
-                result = sum([self.ising_local_energy(state) for state in distribution]) / len(distribution)
+            # print("Ising Hamiltonian")
+            result = np.linalg.eig(self.hamiltonian)[1].T[0]
+            return np.real(result)
+        elif type(self.hamiltonian) == ReducedIsingHamiltonian:
+            result = sum([self.ising_local_energy(state) for state in distribution]) / len(distribution)
             return np.real(result)
         elif type(self.hamiltonian) == DiagonalHamiltonian:
             result = sum([self.local_energy(state) for state in distribution]) / len(distribution)
             return np.real(result)
-
         else:
+            # print("General Hamiltonian")
             result = sum([self.local_energy(state) for state in distribution]) / len(distribution)
 
             return np.real(result)
 
+    def estimate_energy_fast(self, dist: List[np.ndarray] = None) -> float:
+        if dist is None:
+            distribution = self.get_mcmc_states()
+        else:
+            distribution = dist
+
+        # if type(self.hamiltonian) == IsingHamiltonian:
+        #     result = np.linalg.eig(self.hamiltonian)[1].T[0]
+        #     return np.real(result)
+        # elif type(self.hamiltonian) == ReducedIsingHamiltonian:
+        #     result = sum([self.ising_local_energy(state) for state in distribution]) / len(distribution)
+        #     return np.real(result)
+        # elif type(self.hamiltonian) == DiagonalHamiltonian:
+        #     result = sum([self.local_energy(state) for state in distribution]) / len(distribution)
+        #     return np.real(result)
+        # else:
+        #     result = sum([self.local_energy(state) for state in distribution]) / len(distribution)
+
+        return np.real(self.local_energy_fast(distribution)/len(distribution))
+
     def local_energy(self, state: np.ndarray) -> complex:
         """Calculates the local energy of the RBM in state s"""
 
-        i = utils.binary_array_to_int(state)
-        p_i = self.rbm.amplitude(state)
-
-        local_energy = 0
-
-        H = self.hamiltonian
-        hamiltonian_size = H.shape[0]
-
         def eloc_index_value(index_1, index_2):
-            p_j = self.rbm.amplitude(utils.int_to_binary_array(index_2, state.size))
+            p_j = self.rbm.amplitude_old(utils.int_to_binary_array(index_2, state.size))
             h_ij = self.hamiltonian[index_1, index_2]
             return h_ij * p_j / p_i
 
+        i = utils.binary_array_to_int(state)
+        p_i = self.rbm.amplitude_fast(state)
+        local_energy = 0
+        H = self.hamiltonian
+        hamiltonian_size = H.shape[0]
+
         if type(self.hamiltonian) == DiagonalHamiltonian:
-            for j in range(self.off_diag, - self.off_diag - 1, -1):
+            for j in range(self.hamiltonian.diagonal(), - self.hamiltonian.diagonal() - 1, -1):
                 j = i + j
 
                 if j < 0 or j >= hamiltonian_size-1:  # If the j index is out of bounds skip calculation
@@ -120,15 +131,49 @@ class Model(object):
 
         return local_energy
 
+    #@profile
+    def local_energy_fast(self, dist: np.ndarray) -> complex:
+        """Calculates the local energy of the RBM in state s"""
+
+        i = [utils.binary_array_to_int(state) for state in dist]
+        j = self.get_all_states()
+
+        d_1 = len(dist)
+        d_2 = 2 ** len(dist[0])
+
+        M = np.zeros((d_1, d_2), dtype=int)
+        J = np.zeros((d_2, d_2), dtype=int)
+
+        # create matrix with onehot states
+        for (row, col) in enumerate(i):
+
+            M[row, col] = 1
+
+        for (row, col) in enumerate(j):
+
+            J[row, col] = 1
+
+        local_energy = 0
+        p_i = self.rbm.probability_fast(dist)
+
+        for j, int_state in enumerate(M):
+            p_j = self.rbm.probability_fast(self.get_all_states())
+            h_ij = int_state @ self.hamiltonian @ J
+
+            local_energy += sum(h_ij * p_i[j] / p_j)
+
+        return local_energy
+
+    @DeprecationWarning
     def is_diagonal(self):
-        if self.off_diag + 1 - self.hamiltonian.size == 0:
+        if self.hamiltonian.diagonal() + 1 - self.hamiltonian.size == 0:
             return True
         else:
             return False
 
     def ising_local_energy(self, state: np.ndarray) -> complex:
         gamma = self.hamiltonian
-        p_i = self.rbm.amplitude(state)
+        p_i = self.rbm.amplitude_old(state)
 
         def create_mu(state, index):
             mu = state.copy()
@@ -143,13 +188,14 @@ class Model(object):
 
         def eloc_index_value(gamma, index_1):
             mu_i = create_mu(state, index_1)
-            p_j = self.rbm.amplitude(mu_i)
+            p_j = self.rbm.amplitude_old(mu_i)
             return gamma * p_j / p_i
 
         local_energy = sum([eloc_index_value(g, j) for (j, g) in enumerate(gamma)])
 
         return local_energy
 
+    #@profile
     def gradient_descent(self,
                          gradient_method=None,
                          learning_rate=None,
@@ -197,10 +243,7 @@ class Model(object):
 
         for i in range(n_steps):
             try:
-                b = a
-
-                energy = self.exact_energy(self.get_all_states())
-                a = energy
+                energy = self.exact_energy()
                 print(f"Gradient descent step {i + 1}, energy: {energy}")
                 energy_landscape.append(energy)
                 #print(f"Gradient: {gradient(self, exact_dist)}")
@@ -217,10 +260,6 @@ class Model(object):
                 print("Gradient descent interrupted")
                 break
 
-            if termination_condition > abs(b - a):
-                print("Termination condition reached")
-                break
-
         self.optimizing_time = time.time() - start
 
         return energy_landscape
@@ -228,7 +267,7 @@ class Model(object):
 
 class GradientDescent(object):
 
-    def __init__(self, model: Model, learning_rate=None, n_steps=None, termination_condition=None, adam_optimization=None):
+    def __init__(self, model: NQS, learning_rate=None, n_steps=None, termination_condition=None, adam_optimization=None):
         self.model = model
         self.learning_rate = learning_rate
         self.n_steps = n_steps
