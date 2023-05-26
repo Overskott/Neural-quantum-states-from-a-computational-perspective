@@ -49,13 +49,13 @@ import random
 #     return hamiltonian
 
 def random_hamiltonian(size: int):
-    H = np.random.normal(0, 1, (2**size, 2**size)) + 1j * np.random.normal(0, 1, (2**size, 2**size))
+    H = np.random.normal(0, 1, (size, size)) + 1j * np.random.normal(0, 1, (size, size))
     H = H + np.conj(H).T
     return H
 
 
 def random_gamma(size: int, sigma=0, mu=1) -> np.ndarray:
-    return np.random.normal(size, sigma, mu)
+    return np.random.normal(size=size-1, loc=sigma, scale=mu)
 
 
 def random_ising_hamiltonian(size: int = None, gamma_array: np.ndarray = None):
@@ -64,7 +64,7 @@ def random_ising_hamiltonian(size: int = None, gamma_array: np.ndarray = None):
         n = size
         gamma = np.random.normal(0, 1, n - 1)
     else:
-        n = len(gamma_array)
+        n = len(gamma_array) + 1
         gamma = gamma_array
 
     # gamma = np.zeros(n-1) - 1

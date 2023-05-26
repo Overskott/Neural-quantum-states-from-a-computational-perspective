@@ -28,7 +28,7 @@ np.random.seed(42)
 #
 # rbm = RBM(visible_size=n, hidden_size=hidden_layer_size, hamiltonian=gamma, walker_steps=walker_steps)
 #
-# ex_energy_list = [rbm.train_mcmc(iter=100, lr=0.01, print_energy=True)]
+# ex_energy_list = [rbm.train_mcmc(iterations=100, lr=0.01, print_energy=True)]
 #
 #
 # for ex in ex_energy_list:
@@ -38,21 +38,31 @@ np.random.seed(42)
 #
 # plt.show()
 
-n = 2
-hidden = 4
-steps = 100
+n = 4
+hidden = 8
+steps = 1000
+walker_steps = 0
 np.set_printoptions(linewidth=200, precision=4, suppress=True)
 np.random.seed(42)
 
-H = nqs.RandomHamiltonian(n=n)
+gamma = random_gamma(n)
+#H = nqs.IsingHamiltonianReduced(gamma=gamma)
+H_check = H = nqs.RandomHamiltonian(n=n)
 
-eig,_ = np.linalg.eigh(H)
+eig, state = np.linalg.eigh(H_check)
+print(f"Eig: {eig},state: {state}")
 E_truth = np.min(eig)
-print(f"E_truth: {E_truth}")
+e_truth_index = np.where(eig == E_truth)[0]
+print(f"e_truth_index: {e_truth_index}")
+print(f"E_truth: {E_truth}, state truth: {state[e_truth_index]}")
 plt.axhline(y=E_truth, color='b', linestyle='--')
 
-rbm = nqs.RBM(visible_size=n, hidden_size=hidden, hamiltonian=H, walker_steps=0)
-energy_list = [it for it in rbm.train(iter=steps, lr=0.01, print_energy=True)]
+rbm = nqs.RBM(visible_size=n, hidden_size=hidden, hamiltonian=H, walker_steps=walker_steps)
+energy_list = [it for it in rbm.train(iterations=steps, lr=0.01, print_energy=True)]
 
-print(rbm.train.run_time)
+print(f"RBM energy: {energy_list[-1]}, Rbm state: {rbm.wave_function()}")
+
+print(f"Energy error: {np.abs(energy_list[-1]-E_truth)}")
+print(f"State error {state[e_truth_index] @ rbm.wave_function()}")
+#print(rbm.train.run_time)
 
