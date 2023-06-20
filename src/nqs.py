@@ -1,26 +1,40 @@
 import copy
 import line_profiler
-profile = line_profiler.LineProfiler()
-import numpy as np
+profile = line_profiler.LineProfiler()  #Line for handling profiling annotations
 
+import numpy as np
 import src.utils as utils
 from config_parser import get_config_file
 
 
 class Hamiltonian(np.lib.mixins.NDArrayOperatorsMixin):
+    """
+    A  class for representing general Hamiltonians as numpy arrays
+
+    Attributes:
+        dim (int): The dimension of the Hamiltonian matrix (dim x dim).
+        values (np.ndarray): The values of the Hamiltonian i.e. its matrix elements.
+
+    """
 
     def __init__(self, n=None, values=None):
+        """
+        Constructor for the Hamiltonian class
+
+        :param n: Number of spins/qubits in the system
+        :param values: The elements of the Hamiltonian matrix
+
+        """
 
         if n is None:
-            self.dim = np.asarray(values).shape[0]
+            self.dim = 2 ** len(values)
         else:
             self.dim = 2 ** n
 
         if values is None:
             self.values = np.eye(self.dim)
         else:
-            self.values = np.asarray(values)
-
+            self.values = np.diag(values)
 
     def __repr__(self):
         return f"{self.__class__.__name__}\n({self.values})"
@@ -34,27 +48,14 @@ class Hamiltonian(np.lib.mixins.NDArrayOperatorsMixin):
     def __array__(self):
         return self.values
 
-    # def _check_dim(self, dim):
-    #     if dim is None:
-    #         pass
-    #     elif type(dim) != int:
-    #         raise TypeError(f"dim must be positive int, not {type(dim)}")
-    #     elif dim <= 0:
-    #         raise ValueError(f"dim must be positive int, not {dim}")
-    #
-    # def _check_values(self, values):
-    #     if values is None:
-    #         pass
-    #     elif values.shape != (self.dim, self.dim):
-    #         raise ValueError(f"values must be of shape ({self.dim}, {self.dim}), not {values.shape}")
-
 
 class RandomHamiltonian(Hamiltonian):
 
     def __init__(self, n):
         super().__init__(n, values=None)
 
-        self.values = utils.random_hamiltonian(2 ** n)
+        self.values = utils.random_hamiltonian(n)
+
 
 
 class IsingHamiltonian(Hamiltonian):
@@ -63,7 +64,7 @@ class IsingHamiltonian(Hamiltonian):
         super().__init__(n, values=gamma)
 
         if gamma is None:
-            self.values = utils.random_ising_hamiltonian(size=n)
+            self.values = utils.random_ising_hamiltonian(n=n)
         else:
             self.values = utils.random_ising_hamiltonian(gamma_array=gamma)
 
@@ -80,16 +81,45 @@ class IsingHamiltonianReduced(Hamiltonian):
 
 
 class RBM(object):
+    """
+    A class for representing Restricted Boltzmann Machines (RBMs) as numpy arrays.
+
+    Attributes:
+        visible_size (int): The number of visible nodes in the RBM.
+        hidden_size (int): The number of hidden nodes in the RBM.
+        hamiltonian (Hamiltonian): The Hamiltonian of the system.
+        walker_steps (int): The number of walker steps to be performed in the RBM.
+
+        b_r (np.ndarray): The real valued biases of the visible nodes.
+        b_i (np.ndarray): The imaginary valued biases of the visible nodes.
+        c_r (np.ndarray): The real valued biases of the hidden nodes.
+        c_i (np.ndarray): The imaginary valued biases of the hidden nodes.
+        W_r (np.ndarray): The real valued weights of the RBM.
+        W_i (np.ndarray): The imaginary valued weights of the RBM.
+
+        params (list): A list containing the all the parameters (in order b_r, b_i, c_r, c_i, W_r, W_i) of the RBM.
+        all_states (np.ndarray): A list containing all possible states of the RBM.
+        adam (Adam): The Adam optimizer.
+    """
 
     def __init__(self,
                  visible_size: int = None,
                  hidden_size: int = None,
-                 hamiltonian: Hamiltonian =  None,
+                 hamiltonian: Hamiltonian = None,
                  walker_steps: int = None
                  ):
 
+        """
+        Constructor for the RBM class
+        :param visible_size: The number of visible nodes in the RBM.
+        :param hidden_size: The number of hidden nodes in the RBM.
+        :param hamiltonian: The Hamiltonian of the system.
+        :param walker_steps: Number of walker steps to be collected by the mcmc sampler.
+               Value 0 means that the distribution will be the actual one.
+        """
+
         data = get_config_file()['parameters']  # Load the config file
-        scale = 1#/np.sqrt(hidden_size)
+        scale = 1  #/np.sqrt(hidden_size)
 
         if visible_size is None:
             self.visible_size = data['visible_size']
@@ -111,8 +141,6 @@ class RBM(object):
         else:
             self.walker_steps = walker_steps
 
-        self.adam = Adam()
-
         self.b_r = np.random.normal(0, 1/scale, (self.visible_size, 1))  # Visible layer bias #
         self.b_i = np.random.normal(0, 1/scale, (self.visible_size, 1))  # Visible layer bias #
 
@@ -127,7 +155,14 @@ class RBM(object):
         # Generate all possible states
         self.all_states = self.get_all_states()
 
+        # initialize the Adam optimizer
+        self.adam = Adam()
+
     def get_all_states(self):
+        """
+        Generates all possible states of the RBM and returns them as a numpy array.
+        :return: Distribution of all possible states as numpy array.
+        """
         all_states_list = []
 
         for i in range(2 ** self.visible_size):
@@ -137,18 +172,39 @@ class RBM(object):
         return np.array(all_states_list)
 
     def wave_function(self):
+        """
+        Calculates the wave function of the RBM by sampling over all states.
+        :return: the wave function of the RBM.
+        """
         return self.normalized_amplitude(self.all_states)
 
     def probability_dist(self):
+        """
+        Calculates the probability distribution of the RBM over all states.
+        :return: The probability distribution of the RBM.
+        """
         return np.abs(self.wave_function())**2
 
+    def mcmc_dist(self):
+        walker = Walker(self.visible_size, self.walker_steps, self.walker_steps // 10)
+        walker(self.probability, self.walker_steps)
+
+        return walker.get_history()
+
     def normalized_amplitude(self, state):
+        """
+
+        :param state:
+        :return:
+        """
         # Normalized amplitude_old
         Z = np.sqrt(np.sum(np.abs(self.unnormalized_amplitude(self.all_states)) ** 2))
         return self.unnormalized_amplitude(state) / Z
 
     def probability(self, state: np.ndarray) -> float:
-        """ Calculates the probability of finding the RBM in state s """
+        """
+        Calculates and returns the probability of finding the RBM in the given state
+        """
         return np.abs(self.normalized_amplitude(state)) ** 2
 
     def unnormalized_amplitude(self, state):
@@ -193,12 +249,12 @@ class RBM(object):
                 mu[:, index+1] = 1 - state[:, index+1]
             return mu
 
-        def _local_index_energy(gamma, index):
+        def _local_index_energy(gamma_values, index):
             mu_i = _create_mu(states, index)
 
             p_j = self.unnormalized_amplitude(mu_i)
 
-            return gamma * p_j / p_i
+            return gamma_values * p_j / p_i
 
         local_energy = sum([_local_index_energy(g, j) for (j, g) in enumerate(gamma)])
 
@@ -210,7 +266,7 @@ class RBM(object):
         return E.real
 
     def estimate_energy(self):
-        walker = Walker(self.visible_size, self.walker_steps, self.walker_steps//10)
+        walker = Walker(self.visible_size, self.walker_steps)
         sampled_states = walker(self.probability, self.walker_steps)
 
         if type(self.hamiltonian) is IsingHamiltonianReduced:
@@ -327,7 +383,7 @@ class RBM(object):
         return grad_list
 
     def estimate_distribution_grad(self):
-        walker = Walker(self.visible_size, self.walker_steps, self.walker_steps//10)
+        walker = Walker(self.visible_size, self.walker_steps)
         states = walker(self.unnormalized_probability, self.walker_steps)
         omega_list = self.omega_estimate(states)
 
@@ -407,28 +463,33 @@ class Walker(object):
     def __init__(self,
                  visible_size: int,
                  steps: int,
-                 burn_in: int,
-                 hamming_distance: int = 1,
+                 #burn_in: int = None,
+                 #hamming_distance: int = 1,
                  ):
 
         self.steps = steps
-        self.burn_in = burn_in
-        self.hamming_distance = hamming_distance
+
+        #if burn_in is None:
+        self.burn_in = self.steps // 10
+        #else:
+            #self.burn_in = burn_in
+
+        #self.hamming_distance = hamming_distance
         self.current_state = np.random.randint(0, 2, visible_size)
         self.next_state = copy.deepcopy(self.current_state)
         self.walk_results = []
-        self.acceptance_rate = 0
+        #self.acceptance_rate = 0
 
     def __call__(self, function, num_steps):
 
         self.estimate_distribution(function)
-        return np.asarray(self.get_history())
+        return self.get_history()
 
     def get_steps(self):
         return self.steps
 
     def get_history(self):
-        return self.walk_results
+        return np.asarray(self.walk_results)
 
     def clear_history(self):
         self.walk_results = []
@@ -445,7 +506,7 @@ class Walker(object):
     def random_walk(self, function):
 
         for i in range(self.steps):
-            self.next_state = utils.hamming_step(self.current_state)
+            self.next_state = utils.hamming_steps(self.current_state)
             self.walk_results.append(self.current_state)
 
             if self.acceptance_criterion(function):
@@ -457,7 +518,7 @@ class Walker(object):
 
     def burn_in_walk(self, function):
         for i in range(self.burn_in):
-            self.next_state = utils.hamming_step(self.current_state)
+            self.next_state = utils.hamming_steps(self.current_state)
 
             if self.acceptance_criterion(function):
                 self.current_state = copy.deepcopy(self.next_state)
