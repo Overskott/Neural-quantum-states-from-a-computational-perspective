@@ -11,8 +11,6 @@ hidden = 2
 steps = 100
 
 walker_steps = 100
-
-np.set_printoptions(linewidth=200, precision=4, suppress=True)
 np.random.seed(42)
 
 
@@ -21,4 +19,9 @@ print(H)
 
 rbm = RBM(visible_size=n, hidden_size=hidden, hamiltonian=H, walker_steps=walker_steps)
 
-print([binary_array_to_int(state) for state in rbm.mcmc_dist()])
+mcmc_dist = [binary_array_to_int(state) for state in rbm.mcmc_dist()]
+
+
+print(np.unique(mcmc_dist, return_counts=True))
+
+

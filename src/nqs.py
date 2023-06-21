@@ -186,10 +186,19 @@ class RBM(object):
         return np.abs(self.wave_function())**2
 
     def mcmc_dist(self):
-        walker = Walker(self.visible_size, self.walker_steps, self.walker_steps // 10)
+        walker = Walker(self.visible_size, self.walker_steps)
         walker(self.probability, self.walker_steps)
 
         return walker.get_history()
+
+    def mcmc_state_estimate(self):
+        mcmc_dist = [utils.binary_array_to_int(state) for state in self.mcmc_dist()]
+        index, counts = np.unique(mcmc_dist, return_counts=True)
+
+        prob_vector = np.zeros(2**self.visible_size)
+        prob_vector[index] = counts
+
+        return prob_vector/np.sum(prob_vector)
 
     def normalized_amplitude(self, state):
         """
@@ -511,7 +520,7 @@ class Walker(object):
 
             if self.acceptance_criterion(function):
                 self.current_state = copy.deepcopy(self.next_state)
-                self.acceptance_rate += 1
+                #self.acceptance_rate += 1
 
             else:
                 self.next_state = copy.deepcopy(self.current_state)

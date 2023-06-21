@@ -9,7 +9,7 @@ def random_hamiltonian(n: int):
     :param n: The number of qubits in the system of the Hamiltonian matrix.
     :return H: Hamiltonian matrix with random elements.
     """
-    H = np.random.normal(0, 1, (n**2, n**2)) + 1j * np.random.normal(0, 1, (n**2, n**2))
+    H = np.random.normal(0, 1, (2**n, 2**n)) + 1j * np.random.normal(0, 1, (2**n, 2**n))
     H = H + np.conj(H).T
     return H
 
