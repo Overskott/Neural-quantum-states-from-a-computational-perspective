@@ -1,10 +1,11 @@
 from matplotlib import pyplot as plt
 
 from config_parser import get_config_file
-from src.nqs import RBM, RandomHamiltonian
+from src.nqs import RBM, RandomHamiltonian, Hamiltonian, IsingHamiltonian, IsingHamiltonianReduced
 from src.utils import *
 
 n = 2
+
 hidden = 2
 
 
@@ -14,14 +15,27 @@ walker_steps = 100
 np.random.seed(42)
 
 
-H = RandomHamiltonian(n)
-print(H)
 
-rbm = RBM(visible_size=n, hidden_size=hidden, hamiltonian=H, walker_steps=walker_steps)
+A = random_hamiltonian(2)
+print(A.shape[0])
+print(A.shape[1])
+H = Hamiltonian()
 
-mcmc_dist = [binary_array_to_int(state) for state in rbm.mcmc_dist()]
+rh = RandomHamiltonian(n)
+print(rh)
 
+ih = IsingHamiltonian(n)
+print(ih)
+ihr = IsingHamiltonianReduced(n)
+print(ihr)
 
-print(np.unique(mcmc_dist, return_counts=True))
+gamma = random_gamma(n)
 
+ih = IsingHamiltonian(gamma=gamma)
+print(ih)
+ihr = IsingHamiltonianReduced(gamma=gamma)
+print(ihr)
 
+rbm = rbm = RBM(visible_size=2, hidden_size=2, hamiltonian=rh, walker_steps=0)
+
+print(rbm.params)

@@ -17,7 +17,7 @@ class Hamiltonian(np.lib.mixins.NDArrayOperatorsMixin):
 
     """
 
-    def __init__(self, n=None, values=None):
+    def __init__(self):
         """
         Constructor for the Hamiltonian class
 
@@ -25,16 +25,7 @@ class Hamiltonian(np.lib.mixins.NDArrayOperatorsMixin):
         :param values: The elements of the Hamiltonian matrix
 
         """
-
-        if n is None:
-            self.dim = 2 ** len(values)
-        else:
-            self.dim = 2 ** n
-
-        if values is None:
-            self.values = np.eye(self.dim)
-        else:
-            self.values = np.diag(values)
+        self.values = None
 
     def __repr__(self):
         return f"{self.__class__.__name__}\n({self.values})"
@@ -52,16 +43,15 @@ class Hamiltonian(np.lib.mixins.NDArrayOperatorsMixin):
 class RandomHamiltonian(Hamiltonian):
 
     def __init__(self, n):
-        super().__init__(n, values=None)
+        super().__init__()
 
         self.values = utils.random_hamiltonian(n)
-
 
 
 class IsingHamiltonian(Hamiltonian):
 
     def __init__(self, n=None, gamma=None):
-        super().__init__(n, values=gamma)
+        super().__init__()
 
         if gamma is None:
             self.values = utils.random_ising_hamiltonian(n=n)
@@ -72,7 +62,7 @@ class IsingHamiltonian(Hamiltonian):
 class IsingHamiltonianReduced(Hamiltonian):
 
     def __init__(self, n=None, gamma=None):
-        super().__init__(n, values=gamma)
+        super().__init__()
 
         if gamma is None:
             self.values = utils.random_gamma(n)
@@ -141,8 +131,8 @@ class RBM(object):
         else:
             self.walker_steps = walker_steps
 
-        self.b_r = np.random.normal(0, 1/scale, (self.visible_size, 1))  # Visible layer bias #
-        self.b_i = np.random.normal(0, 1/scale, (self.visible_size, 1))  # Visible layer bias #
+        self.b_r = np.random.normal(0, 1/scale, (self.visible_size, 1))  # Visible layer bias
+        self.b_i = np.random.normal(0, 1/scale, (self.visible_size, 1))  # Visible layer bias
 
         self.c_r = np.random.normal(0, 1/scale, (1, self.hidden_size))  # Hidden layer bias
         self.c_i = np.random.normal(0, 1/scale, (1, self.hidden_size))  # Hidden layer bias
@@ -337,11 +327,14 @@ class RBM(object):
         A = np.einsum('ij,ik->ijk', state, A).reshape(batch_size, -1)
         return A
 
-    def finite_grad(self, h=0.05):
+    def finite_grad(self):
+
         if self.walker_steps == 0:
             func = self.exact_energy
+            h = 10e-4
         else:
             func = self.estimate_energy
+            h = 3 / np.sqrt(self.walker_steps)
 
         grad_list = []
         for param in self.params:
@@ -411,7 +404,12 @@ class RBM(object):
         return grad_list
 
     @utils.timing
-    def train(self, iterations=1000, lr=0.01, analytical_grad=True, print_energy=True):
+    def train(self,
+              iterations=1000,
+              lr=0.01,
+              analytical_grad=True,
+              print_energy=True,
+              termination_condition:(tuple) = None):
         energy_list = []
 
         try:
@@ -434,6 +432,10 @@ class RBM(object):
 
                 if print_energy:
                     print(f"Current ground state: {energy_list[-1]} for training step {i}")
+
+                if termination_condition:
+                    if utils.relative_error(energy_list[-1], termination_condition[1]) < termination_condition[0]:
+                        break
 
         except KeyboardInterrupt:
             print(f"Training interrupted by user")
@@ -472,22 +474,13 @@ class Walker(object):
     def __init__(self,
                  visible_size: int,
                  steps: int,
-                 #burn_in: int = None,
-                 #hamming_distance: int = 1,
                  ):
 
         self.steps = steps
-
-        #if burn_in is None:
         self.burn_in = self.steps // 10
-        #else:
-            #self.burn_in = burn_in
-
-        #self.hamming_distance = hamming_distance
         self.current_state = np.random.randint(0, 2, visible_size)
         self.next_state = copy.deepcopy(self.current_state)
         self.walk_results = []
-        #self.acceptance_rate = 0
 
     def __call__(self, function, num_steps):
 
@@ -511,7 +504,6 @@ class Walker(object):
 
         self.random_walk(function)
 
-    # @profile
     def random_walk(self, function):
 
         for i in range(self.steps):
@@ -520,7 +512,6 @@ class Walker(object):
 
             if self.acceptance_criterion(function):
                 self.current_state = copy.deepcopy(self.next_state)
-                #self.acceptance_rate += 1
 
             else:
                 self.next_state = copy.deepcopy(self.current_state)
@@ -534,10 +525,6 @@ class Walker(object):
             else:
                 self.next_state = copy.deepcopy(self.current_state)
 
-    def average_acceptance(self):
-        return self.acceptance_rate / self.steps
-
-    # @profile
     def acceptance_criterion(self, function) -> bool:
         u = np.random.uniform(0, 1)
         new_score = function(self.next_state)

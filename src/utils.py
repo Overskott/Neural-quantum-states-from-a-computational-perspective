@@ -171,6 +171,18 @@ def hamming_step(binary_array: np.ndarray) -> np.ndarray:
     return new_array
 
 
+def relative_error(true_value, approx_value):
+    """
+    Calculate the relative error between the true and approximate value.
+
+    :param true_value: The true value
+    :param approx_value: The approximate value
+
+    :return: The relative error
+    """
+    return float(np.abs((true_value - approx_value) / true_value).reshape(1)[0])
+
+
 @DeprecationWarning
 def random_diagonal_hamiltonian(size: int, off_diagonal=0):
     """
