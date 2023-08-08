@@ -93,10 +93,10 @@ class RBM(object):
     """
 
     def __init__(self,
-                 visible_size: int = None,
-                 hidden_size: int = None,
-                 hamiltonian: Hamiltonian = None,
-                 walker_steps: int = None
+                 visible_size: int,
+                 hidden_size: int,
+                 hamiltonian: Hamiltonian,
+                 walker_steps: int
                  ):
 
         """
@@ -108,29 +108,12 @@ class RBM(object):
                Value 0 means that the distribution will be the actual one.
         """
 
-        data = get_config_file()['parameters']  # Load the config file
-        scale = 1  #/np.sqrt(hidden_size)
+        self.visible_size = visible_size
+        self.hidden_size = hidden_size
+        self.hamiltonian = hamiltonian
+        self.walker_steps = walker_steps
 
-        if visible_size is None:
-            self.visible_size = data['visible_size']
-        else:
-            self.visible_size = visible_size
-
-        if hidden_size is None:
-            self.hidden_size = data['hidden_size']
-        else:
-            self.hidden_size = hidden_size
-
-        if hamiltonian is None:
-            self.hamiltonian = utils.random_hamiltonian(2**self.visible_size)
-        else:
-            self.hamiltonian = hamiltonian
-
-        if walker_steps is None:
-            self.walker_steps = data['walker_steps']
-        else:
-            self.walker_steps = walker_steps
-
+        scale = 1  # /np.sqrt(hidden_size)
         self.b_r = np.random.normal(0, 1/scale, (self.visible_size, 1))  # Visible layer bias
         self.b_i = np.random.normal(0, 1/scale, (self.visible_size, 1))  # Visible layer bias
 
@@ -173,7 +156,7 @@ class RBM(object):
         Calculates the probability distribution of the RBM over all states.
         :return: The probability distribution of the RBM.
         """
-        return np.abs(self.wave_function())**2
+        return np.abs(self.wave_function()) ** 2
 
     def mcmc_dist(self):
         walker = Walker(self.visible_size, self.walker_steps)
@@ -182,6 +165,7 @@ class RBM(object):
         return walker.get_history()
 
     def mcmc_state_estimate(self):
+
         mcmc_dist = [utils.binary_array_to_int(state) for state in self.mcmc_dist()]
         index, counts = np.unique(mcmc_dist, return_counts=True)
 
@@ -191,13 +175,9 @@ class RBM(object):
         return prob_vector/np.sum(prob_vector)
 
     def normalized_amplitude(self, state):
-        """
-
-        :param state:
-        :return:
-        """
-        # Normalized amplitude_old
-        Z = np.sqrt(np.sum(np.abs(self.unnormalized_amplitude(self.all_states)) ** 2))
+        """ Calculates and returns the normalized amplitude of the given state """
+        all_amps = np.abs(self.unnormalized_amplitude(self.all_states))
+        Z = np.sqrt(np.sum(np.abs(all_amps) ** 2))  # The normalization constant
         return self.unnormalized_amplitude(state) / Z
 
     def probability(self, state: np.ndarray) -> float:
@@ -357,7 +337,6 @@ class RBM(object):
 
         if self.walker_steps == 0:
             return self.exact_distribution_grad()
-
         else:
             return self.estimate_distribution_grad()
 
@@ -486,9 +465,6 @@ class Walker(object):
 
         self.estimate_distribution(function)
         return self.get_history()
-
-    def get_steps(self):
-        return self.steps
 
     def get_history(self):
         return np.asarray(self.walk_results)
