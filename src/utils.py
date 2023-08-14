@@ -180,59 +180,29 @@ def relative_error(true_value, approx_value):
 
     :return: The relative error
     """
-    return float(np.abs((true_value - approx_value) / true_value).reshape(1)[0])
+    return np.abs((true_value - approx_value) / true_value)
 
 
-@DeprecationWarning
-def random_diagonal_hamiltonian(size: int, off_diagonal=0):
+def prob_error(true_value, approx_value):
     """
-    Generate a random diagonal hamiltonian matrix of n n_qubits x n_qubits with off_diagonal elements.
+    Calculate the relative error between the true and approximate value.
 
-    :param size: Size of the hamiltonian matrix
-    :param off_diagonal: Number of off-diagonals above and below the main diagonal
+    :param true_value: The true value
+    :param approx_value: The approximate value
 
-    :return: Diagonal hamiltonian matrix
+    :return: The relative error
     """
-    H = random_hamiltonian(2**size)
-    diag_ham = -(H - np.triu(H, -off_diagonal) - np.tril(H, off_diagonal))
-
-    return diag_ham
-
-@DeprecationWarning
-def get_matrix_off_diag_range(H):
-    hamiltonian_size = H.shape[0]
-
-    for i in range(hamiltonian_size):
-
-        off_diag = H - np.tril(H, i) + H - np.triu(H, -i)
-
-        if np.count_nonzero(off_diag) == 0:
-            return i
+    return np.sum(abs(true_value - approx_value))/2
 
 
-@DeprecationWarning
-def generate_positive_ground_state_hamiltonian(n_qubits: int):
-    size = 2**n_qubits
-    G = np.random.normal(0, 1, (size, size))
+def state_error(true_state, approx_state):
+    """
+    Calculate the 1-fidelity error between the true and approximate state.
 
-    H = G + np.transpose(G)
+    :param true_state: The true state
+    :param approx_state: The approximate state
 
-    a = np.random.uniform(0, 1, size)
-    a = a / (np.sum(a ** 2))
-
-    beta = 0
-    hamiltonian = 0
-    gs = np.array([-1, 1])
-
-    while not (np.all(gs > 0) or np.all(gs < 0)):
-        beta += 0.1
-
-        hamiltonian = H - beta * (np.transpose(a) @ a)
-
-        eig, eigvec = np.linalg.eig(hamiltonian)
-        gs_index = np.argmin(eig)
-        gs = eigvec[:, gs_index]
-        gs = gs / (np.sum(gs ** 2))
-
-    return hamiltonian
+    :return: The state error
+    """
+    return 1 - (np.abs(true_state.T.conj() @ approx_state))
 

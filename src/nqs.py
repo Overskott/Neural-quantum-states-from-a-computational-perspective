@@ -158,15 +158,15 @@ class RBM(object):
         """
         return np.abs(self.wave_function()) ** 2
 
-    def mcmc_dist(self):
+    def mcmc_dist(self, warm_up_steps=-1):
         walker = Walker(self.visible_size, self.walker_steps)
-        walker(self.probability, self.walker_steps)
+        walker(self.unnormalized_probability, warm_up_steps=warm_up_steps)
 
         return walker.get_history()
 
-    def mcmc_state_estimate(self):
+    def mcmc_state_estimate(self, warm_up_steps=-1):
 
-        mcmc_dist = [utils.binary_array_to_int(state) for state in self.mcmc_dist()]
+        mcmc_dist = [utils.binary_array_to_int(state) for state in self.mcmc_dist(warm_up_steps=warm_up_steps)]
         index, counts = np.unique(mcmc_dist, return_counts=True)
 
         prob_vector = np.zeros(2**self.visible_size)
@@ -244,14 +244,18 @@ class RBM(object):
         E = wave_function.conj().T @ self.hamiltonian @ wave_function
         return E.real
 
-    def estimate_energy(self):
-        walker = Walker(self.visible_size, self.walker_steps)
-        sampled_states = walker(self.probability, self.walker_steps)
+    def estimate_energy(self, states=None):
+
+        if states is None:
+            walker = Walker(self.visible_size, self.walker_steps)
+            states = walker(self.unnormalized_probability)
+        else:
+            states = states
 
         if type(self.hamiltonian) is IsingHamiltonianReduced:
-            return np.mean(self.ising_local_energy(sampled_states)).real
+            return np.mean(self.ising_local_energy(states)).real
         else:
-            return np.mean(self.local_energy(sampled_states)).real
+            return np.mean(self.local_energy(states)).real
 
     def omega_estimate(self, states):
         omega_list = []
@@ -307,11 +311,10 @@ class RBM(object):
         A = np.einsum('ij,ik->ijk', state, A).reshape(batch_size, -1)
         return A
 
-    def finite_grad(self):
+    def finite_grad(self, h=10e-4):
 
         if self.walker_steps == 0:
             func = self.exact_energy
-            h = 10e-4
         else:
             func = self.estimate_energy
             h = 3 / np.sqrt(self.walker_steps)
@@ -333,12 +336,12 @@ class RBM(object):
 
         return grad_list
 
-    def analytical_grad(self):
+    def analytical_grad(self, states=None):
 
         if self.walker_steps == 0:
             return self.exact_distribution_grad()
         else:
-            return self.estimate_distribution_grad()
+            return self.estimate_distribution_grad(states)
 
     def exact_distribution_grad(self):
         grad_list = []
@@ -363,9 +366,12 @@ class RBM(object):
             grad_list.append(grad.real)
         return grad_list
 
-    def estimate_distribution_grad(self):
-        walker = Walker(self.visible_size, self.walker_steps)
-        states = walker(self.unnormalized_probability, self.walker_steps)
+    def estimate_distribution_grad(self, states=None):
+        if states is None:
+            walker = Walker(self.visible_size, self.walker_steps)
+            states = walker(self.unnormalized_probability)
+        else:
+            states = states
         omega_list = self.omega_estimate(states)
 
         if type(self.hamiltonian) is IsingHamiltonianReduced:
@@ -386,17 +392,22 @@ class RBM(object):
     def train(self,
               iterations=1000,
               lr=0.01,
+              h=10e-4,
               analytical_grad=True,
               print_energy=True,
               termination_condition:(tuple) = None):
-        energy_list = []
 
+        energy_list = []
         try:
             for i in range(iterations):
+
+                walker = Walker(self.visible_size, self.walker_steps)
+                states = walker(self.unnormalized_probability, warm_up_steps=self.walker_steps//10)
+
                 if analytical_grad:
-                    grad_list = self.analytical_grad()
+                    grad_list = self.analytical_grad(states)
                 else:
-                    grad_list = self.finite_grad()
+                    grad_list = self.finite_grad(h=h)
 
                 grad_list = self.adam.step(grad_list)
 
@@ -407,7 +418,7 @@ class RBM(object):
                 if self.walker_steps == 0:
                     energy_list.append(self.exact_energy()[0, 0])
                 else:
-                    energy_list.append(self.estimate_energy())
+                    energy_list.append(self.estimate_energy(states))
 
                 if print_energy:
                     print(f"Current ground state: {energy_list[-1]} for training step {i}")
@@ -456,14 +467,13 @@ class Walker(object):
                  ):
 
         self.steps = steps
-        self.burn_in = self.steps // 10
         self.current_state = np.random.randint(0, 2, visible_size)
         self.next_state = copy.deepcopy(self.current_state)
         self.walk_results = []
 
-    def __call__(self, function, num_steps):
+    def __call__(self, function, warm_up_steps=0):
 
-        self.estimate_distribution(function)
+        self.estimate_distribution(function, warm_up_steps)
         return self.get_history()
 
     def get_history(self):
@@ -472,11 +482,14 @@ class Walker(object):
     def clear_history(self):
         self.walk_results = []
 
-    def estimate_distribution(self, function, burn_in=True) -> None:
+    def estimate_distribution(self, function, warm_up_steps) -> None:
         self.clear_history()
 
-        if burn_in:
-            self.burn_in_walk(function)
+        if warm_up_steps < 0:
+            warm_up_steps = self.steps//10
+        if warm_up_steps > 0:
+            print("Warming up the walker...")
+            self.warm_up_walk(function, warm_up_steps)
 
         self.random_walk(function)
 
@@ -492,8 +505,8 @@ class Walker(object):
             else:
                 self.next_state = copy.deepcopy(self.current_state)
 
-    def burn_in_walk(self, function):
-        for i in range(self.burn_in):
+    def warm_up_walk(self, function, warm_up_steps):
+        for i in range(warm_up_steps):
             self.next_state = utils.hamming_steps(self.current_state)
 
             if self.acceptance_criterion(function):
